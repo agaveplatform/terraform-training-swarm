@@ -1,0 +1,9 @@
+--
+# file: training.yml
+# Create a service stack for each attendee and deploy it to their VM.
+# Terraform created a host group and corresponding group_vars/<username>
+# files for each attendee.
+- hosts: training-nodes
+  roles:
+    - jupyter
+    - sandbox

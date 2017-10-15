@@ -1,0 +1,8 @@
+--
+# file: ci.yml
+# Create a jenkins service stack for automated container builds.
+# Terraform created a host group and corresponding group_vars/<username>
+# files for ci.
+- hosts: ci
+  roles:
+    - jenkins
