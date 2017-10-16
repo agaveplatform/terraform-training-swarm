@@ -9,7 +9,7 @@
 # A NFS volume driver will be used in the future to persist the user's data
 # in spite of node failure.
 data "template_file" "training_sandbox_docker_compose_file" {
-  template = "${file("templates/sandbox.yml")}"
+  template = "${file("templates/training/sandbox.compose.tpl")}"
   count    = "${length(var.attendees)}"
 
   vars {
@@ -31,13 +31,13 @@ data "template_file" "training_sandbox_docker_compose_file" {
 # survive container restarts, but be lost between host runs.
 #
 resource "null_resource" "training_sanbox_launch" {
-  depends_on = ["null_resource.join_training_node_to_cluster"]
+  depends_on = ["null_resource.training_node_join_cluster"]
   count = "${length(var.attendees)}"
 
   # copies compose file with network stack to the swarm master
   provisioner "file" {
     content       = "${element(data.template_file.training_sandbox_docker_compose_file.*.rendered, count.index)}"
-    destination   = "/home/agaveops/docker-compose.sandbox.${var.attendees[count.index]}.yml"
+    destination   = "/home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml"
     connection {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
@@ -51,7 +51,7 @@ resource "null_resource" "training_sanbox_launch" {
   provisioner "remote-exec" {
     inline = [
       "docker volume create ${var.attendees[count.index]}-training-volume",
-      "docker-compose -f /home/agaveops/docker-compose.sandbox.${var.attendees[count.index]}.yml up -d ",
+      "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml up -d ",
     ]
     connection {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
@@ -98,12 +98,12 @@ data "template_file" "training_jupyter_stack_template" {
 # service will be named after the user and pinned to their dedicated VM.
 #
 resource "null_resource" "training_deploy_jupyter_stack" {
-  depends_on = ["null_resource.training_node_join_cluster"]
+  depends_on = ["null_resource.training_sanbox_launch"]
   count = "${length(var.attendees)}"
 
   # copies compose file with network stack to the swarm master
   provisioner "file" {
-    content        = "${element(template_file.training_jupyter_stack_template.*.resolved, count.index)}"
+    content        = "${element(data.template_file.training_jupyter_stack_template.*.rendered, count.index)}"
     destination   = "/home/agaveops/jupyter.stack.${var.attendees[count.index]}.yml"
     connection {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"

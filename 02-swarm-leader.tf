@@ -1,9 +1,4 @@
-resource "openstack_compute_floatingip_associate_v2" "swarm_manager" {
-  #floating_ip = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
-  floating_ip = "149.165.157.242"
-  instance_id = "${openstack_compute_instance_v2.swarm_manager.id}"
-}
-
+# Provision the swarm leader node
 resource "openstack_compute_instance_v2" "swarm_manager" {
   name            = "swarm-manager-0"
   count           = 1
@@ -17,6 +12,14 @@ resource "openstack_compute_instance_v2" "swarm_manager" {
   network {
     name          = "${openstack_networking_network_v2.swarm_tf_network1.name}"
   }
+}
+
+# Assign floating ip to the swarm leader for external connectivity
+resource "openstack_compute_floatingip_associate_v2" "swarm_manager" {
+  # uncomment to assign a new floating ip with each deployment
+  #floating_ip = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+  floating_ip = "149.165.157.242"
+  instance_id = "${openstack_compute_instance_v2.swarm_manager.id}"
 }
 
 resource "null_resource" "swarm_manager_configure_auth" {
@@ -65,14 +68,17 @@ resource "null_resource" "swarm_manager_configure_auth" {
   }
 }
 
+# Create the swarm and establish leadership
 resource "null_resource" "swarm_manager_init_swarm" {
 
-  # Initialize the swarm master and configure ssh access between this host and
-  # the rest of the swarm via a service account.
+  # Initialize the swarm, making this node the leader. Add appropriate labels
   provisioner "remote-exec" {
     inline = [
       "docker swarm init",
-      "docker network create --driver overlay --subnet=10.0.9.0/24 ${var.swarm_overlay_network_name}",
+      "docker network create --driver overlay --attachable ${var.swarm_overlay_network_name}",
+      "docker network create --driver overlay --attachable monitoring-overlay",
+      "docker network create --driver overlay --attachable logging-overlay",
+      "docker network create --driver overlay --attachable application-overlay",
       "docker swarm join-token --quiet worker > /home/agaveops/worker-token",
       "docker swarm join-token --quiet manager > /home/agaveops/manager-token",
       "docker node update --label-add 'node.labels.environment=training' ${openstack_compute_instance_v2.swarm_manager.name}",
@@ -84,106 +90,4 @@ resource "null_resource" "swarm_manager_init_swarm" {
       timeout = "90s"
     }
   }
-}
-
-resource "null_resource" "swarm_manager_deploy_monitoring_stack" {
-  depends_on = ["null_resource.swarm_manager_init_swarm"]
-
-  # copies resolved host monitoring compose file to the slave
-  provisioner "file" {
-    content      = "${template_file.swarm_monitoring_stack_template.resolved}"
-    destination = "/home/agaveops/monitoring.stack.yml"
-    connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-
-  # launch the host monitoring docker containers by invoking docker compose
-  # with the monitoring compose file.
-  provisioner "remote-exec" {
-    inline = [
-      "docker stack deploy -c monitoring.stack.yml monitoring",
-    ]
-    connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-}
-
-resource "null_resource" "swarm_master_init_host_monitors" {
-  depends_on = ["null_resource.swarm_manager_deploy_monitoring_stack"]
-
-  # copies resolved host monitoring compose file to the slave
-  provisioner "file" {
-    content      = "${template_file.swarm_host_monitors_template.resolved}"
-    destination = "/home/agaveops/monitors.compose.yml"
-    connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-
-  # launch the host monitoring docker containers by invoking docker compose
-  # with the monitoring compose file.
-  provisioner "remote-exec" {
-    inline = [
-      "docker-compose -f monitors.compose.yml up -d",
-    ]
-    connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-}
-
-resource "null_resource" "swarm_manager_deploy_training_stack" {
-  depends_on = ["openstack_compute_floatingip_associate_v2.swarm_manager"]
-
-  # copies compose file with network stack to the swarm master
-  provisioner "file" {
-    source      = "templates/monitoring"
-    destination = "/home/agaveops/monitoring"
-    connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-
-  # copies compose file with network stack to the swarm master
-  provisioner "file" {
-    source      = "templates/traefik"
-    destination = "/home/agaveops/traefik"
-    connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-
-  # copies compose file with network stack to the swarm master
-  provisioner "file" {
-    source      = "templates/training"
-    destination = "/home/agaveops/training"
-    connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-
-
 }

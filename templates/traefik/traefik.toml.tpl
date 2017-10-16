@@ -32,12 +32,6 @@ debug = true
 #
 #accessLogsFile = "log/access.log"
 
-# Web administration port
-#
-# Required
-#
-address = ":8080"
-
 [entryPoints]
   [entryPoints.http]
   address = ":80"

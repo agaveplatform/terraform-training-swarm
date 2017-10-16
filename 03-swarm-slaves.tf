@@ -1,3 +1,4 @@
+# Provision the swarm worker node(s)
 resource "openstack_compute_instance_v2" "swarm_slave" {
   name            = "swarm-slave-${count.index}"
   count           = "${var.swarm_slave_count}"
@@ -15,6 +16,7 @@ resource "openstack_compute_instance_v2" "swarm_slave" {
   }
 }
 
+# Assign floating ip to the swarm slaves for external connectivity.
 resource "openstack_compute_floatingip_associate_v2" "swarm_slave" {
   count = "${var.swarm_slave_count}"
   floating_ip = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
@@ -69,12 +71,12 @@ resource "null_resource" "swarm_slave_configure_auth" {
   }
 }
 
+# Join the swarm as a worker.
 resource "null_resource" "swarm_slave_join_cluster" {
   depends_on = ["null_resource.swarm_slave_configure_auth"]
   count = "${var.swarm_slave_count}"
 
-  # Initialize the swarm master and configure ssh access between this host and
-  # the rest of the swarm via a service account.
+  # Connect to the slave node and join the host to the swarm as a worker node
   provisioner "remote-exec" {
     inline = [
       "scp -o StrictHostKeyChecking=no -o NoHostAuthenticationForLocalhost=yes -o UserKnownHostsFile=/dev/null -i /home/agaveops/.ssh/key.pem agaveops@${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}:/home/agaveops/worker-token /home/agaveops/worker-token",
@@ -88,44 +90,8 @@ resource "null_resource" "swarm_slave_join_cluster" {
       timeout = "90s"
     }
   }
-}
 
-resource "null_resource" "swarm_slave_init_host_monitors" {
-  depends_on = ["null_resource.swarm_manager_deploy_monitoring_stack"]
-  count = "${var.swarm_slave_count}"
-
-  # copies resolved host monitoring compose file to the slave
-  provisioner "file" {
-    content      = "${template_file.swarm_host_monitors_template.resolved}"
-    destination = "/home/agaveops/monitors.yml"
-    connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-
-  # launch the host monitoring docker containers by invoking docker compose
-  # with the monitoring compose file.
-  provisioner "remote-exec" {
-    inline = [
-      "docker-compose -f monitors.yml up -d",
-    ]
-    connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-}
-
-resource "null_resource" "swarm_slave_assign_node_labels" {
-  depends_on = ["null_resource.swarm_slave_join_cluster"]
-  count = "${var.swarm_slave_count}"
-
-  # Connect to the swarm manager and assign relevant labels to the swarm node
+  # Connect to the swarm manager and assign relevant labels to the slave node
   provisioner "remote-exec" {
     inline = [
       "echo 'docker node update --label-add environment=swarm ${element(openstack_compute_instance_v2.swarm_slave.*.name, count.index)}'",

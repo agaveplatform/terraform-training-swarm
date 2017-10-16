@@ -6,7 +6,7 @@ networks:
   logging:
   swarm_overlay:
     external:
-      name: swarm-overlay
+      name: ${SWARM_OVERLAY_NETWORK_NAME}
 
 services:
 
@@ -20,11 +20,12 @@ services:
       labels:
         - "environment=training"
         - "traefik.port=8080"
-        - "traefik.frontend.rule=PathPrefixStrip:/viz"
+        - "traefik.protocol=http"
+        - "traefik.frontend.rule=PathPrefixStrip:/viz;Host:ops.${WILDCARD_DOMAIN_NAME}"
         - "traefik.backend.loadbalancer.sticky=true"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
     networks:
-      - swarm-overlay
+      - swarm_overlay
 
   portainer:
     image: ${PORTAINER_IMAGE}
@@ -33,7 +34,8 @@ services:
       labels:
         - "environment=training"
         - "traefik.port=9000"
-        - "traefik.frontend.rule=PathPrefixStrip:/portainer"
+        - "traefik.protocol=http"
+        - "traefik.frontend.rule=PathPrefixStrip:/portainer;Host:ops.${WILDCARD_DOMAIN_NAME}"
         - "traefik.backend.loadbalancer.sticky=true"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
       placement:
@@ -49,6 +51,7 @@ services:
       - "9200"
     networks:
       - logging
+      - swarm_overlay
     deploy:
       labels:
         - traefik.enable=false
@@ -65,11 +68,13 @@ services:
       - "5601:5601"
     networks:
       - logging
+      - swarm_overlay
     deploy:
       labels:
         - "environment=training"
         - "traefik.port=5601"
-        - "traefik.frontend.rule=PathPrefixStrip:/kibana"
+        - "traefik.protocol=http"
+        - "traefik.frontend.rule=PathPrefixStrip:/kibana;Host:ops.${WILDCARD_DOMAIN_NAME}"
         - "traefik.backend.loadbalancer.sticky=true"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
       mode: replicated
@@ -85,6 +90,7 @@ services:
       - "9090"
     networks:
       - monitoring
+      - swarm_overlay
     command: -config.file=/etc/prometheus/prometheus.yml -storage.local.path=/prometheus -web.console.libraries=/etc/prometheus/console_libraries -web.console.templates=/etc/prometheus/consoles -alertmanager.url=http://alertmanager:9093
     deploy:
       labels:
@@ -109,6 +115,7 @@ services:
       - "3000:3000"
     networks:
       - monitoring
+      - swarm_overlay
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
       PROMETHEUS_ENDPOINT: http://prometheus:9090
@@ -119,7 +126,8 @@ services:
       labels:
         - "environment=training"
         - "traefik.port=3000"
-        - "traefik.frontend.rule=PathPrefixStrip:/grafana"
+        - "traefik.protocol=http"
+        - "traefik.frontend.rule=PathPrefixStrip:/grafana;Host:ops.${WILDCARD_DOMAIN_NAME}"
         - "traefik.backend.loadbalancer.sticky=true"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
       placement:
@@ -140,7 +148,7 @@ services:
     image: ${ALERTMANAGER_IMAGE}
     networks:
       - monitoring
-      # - logging
+      - swarm_overlay
     ports:
      - "9093:9093"
     environment:

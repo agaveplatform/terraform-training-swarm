@@ -34,6 +34,8 @@ services:
     networks:
       - training
       - swarm_overlay
+    ports:
+      - 8005:8005
     deploy:
       placement:
         constraints:
@@ -45,6 +47,7 @@ services:
         - "training.user=${TRAINING_USERNAME}"
         - "environment=training"
         - "traefik.port=8005"
+        - "traefik.protocol=http"
         - "traefik.frontend.rule=Host:${TRAINING_VM_HOSTNAME}"
         - "traefik.backend.loadbalancer.sticky=true"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"

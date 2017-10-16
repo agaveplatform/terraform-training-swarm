@@ -1,5 +1,5 @@
 resource "null_resource" "ansible_inventory" {
-  depends_on = ["null_resource.add_swarm_slave_node_labels", "null_resource.join_swarm_managerx_to_cluster", "null_resource.swarm_manager_init_swarm", "null_resource.launch_training_notebook"]
+  depends_on = ["null_resource.swarm_manager_init_swarm", "null_resource.swarm_managerx_join_cluster", "null_resource.swarm_slave_join_cluster", "null_resource.training_deploy_jupyter_stack"]
 
   provisioner "local-exec" {
     command = "echo \"[swarm-manager]\" > ansible/${var.swarm_environment}"

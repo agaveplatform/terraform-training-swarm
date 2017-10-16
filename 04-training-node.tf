@@ -1,4 +1,22 @@
+# Provision the training node(s)
+resource "openstack_compute_instance_v2" "training_node" {
+  name            = "training-node-${var.attendees[count.index]}"
+  count           = "${length(var.attendees)}"
 
+  image_id        = "${var.openstack_images["ubuntu1604"]}"
+
+  flavor_id       = "${var.openstack_flavor["m1_medium"]}"
+  key_pair        = "${openstack_compute_keypair_v2.keypair.name}"
+  security_groups = ["${openstack_compute_secgroup_v2.swarm_tf_secgroup_1.name}"]
+
+  #user_data       = "${data.template_file.traininginit.rendered}"
+
+  network {
+    name          = "${openstack_networking_network_v2.swarm_tf_network1.name}"
+  }
+}
+
+# Assign floating ip to the training nodes for external connectivity
 resource "openstack_compute_floatingip_associate_v2" "training_node" {
   count = "${length(var.attendees)}"
 
@@ -20,38 +38,9 @@ resource "openstack_compute_floatingip_associate_v2" "training_node" {
   }
 }
 
-resource "openstack_compute_instance_v2" "training_node" {
-  name            = "training-node-${var.attendees[count.index]}"
-  count           = "${length(var.attendees)}"
-
-  image_id        = "${var.openstack_images["ubuntu1604"]}"
-
-  flavor_id       = "${var.openstack_flavor["m1_medium"]}"
-  key_pair        = "${openstack_compute_keypair_v2.keypair.name}"
-  security_groups = ["${openstack_compute_secgroup_v2.swarm_tf_secgroup_1.name}"]
-
-  #user_data       = "${data.template_file.traininginit.rendered}"
-
-  network {
-    name          = "${openstack_networking_network_v2.swarm_tf_network1.name}"
-  }
-}
-
-resource "null_resource" "init_training_node" {
+resource "null_resource" "training_node_auth_config" {
   depends_on = ["null_resource.swarm_manager_init_swarm"]
   count = "${length(var.attendees)}"
-
-  # copies monitoring docker compose file to the training node
-  provisioner "file" {
-    source      = "docker-compose.yml"
-    destination = "/home/agaveops/docker-compose.yml"
-    connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
 
   # copies ssh private key to the swarm master. This key should match
   # openstack_compute_keypair_v2.keypair private key
@@ -78,12 +67,6 @@ resource "null_resource" "init_training_node" {
       timeout = "90s"
     }
   }
-}
-
-resource "null_resource" "init_training_node_auth" {
-  depends_on = ["null_resource.init_training_node"]
-  count = "${length(var.attendees)}"
-
 
   # Initialize the swarm master and configure ssh access between this host and
   # the rest of the swarm via a service account.
@@ -103,8 +86,9 @@ resource "null_resource" "init_training_node_auth" {
   }
 }
 
+# Join the swarm as a worker
 resource "null_resource" "training_node_join_cluster" {
-  depends_on = ["null_resource.init_training_node_auth"]
+  depends_on = ["null_resource.training_node_auth_config"]
   count = "${length(var.attendees)}"
 
   # Initialize the swarm master and configure ssh access between this host and
@@ -115,7 +99,6 @@ resource "null_resource" "training_node_join_cluster" {
       "docker swarm leave || true",
       "echo 'swarm join --token '$(cat /home/agaveops/worker-token)' ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377'",
       "docker swarm join --token $(cat /home/agaveops/worker-token) ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377",
-      "ELASTICSEARCH_HOSTNAME=${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip} LOGSTACHE_HOSTNAME=${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip} docker-compose up -d ",
     ]
     connection {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
@@ -124,14 +107,8 @@ resource "null_resource" "training_node_join_cluster" {
       timeout = "90s"
     }
   }
-}
 
-
-resource "null_resource" "add_training_node_labels" {
-  depends_on = ["null_resource.training_node_join_cluster"]
-  count = "${length(var.attendees)}"
-
-  # add appropriate labels to the
+  # Connect to the swarm manager and assign relevant labels to the training node
   provisioner "remote-exec" {
     inline = [
       "echo 'docker node update --role=worker --label-add environment=training --label-add training.name=${var.training_event} --label-add training.user=${var.attendees[count.index]}  ${element(openstack_compute_instance_v2.training_node.*.name, count.index)}'",

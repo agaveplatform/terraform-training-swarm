@@ -71,7 +71,7 @@ cd $TF_HOME
 
 # We will alias the Docker run command to make the rest a bit more readable.
 # If you installed natively installed Terraform, comment out this line.
-alias terraform="docker run -it --rm -w /data -v $(pwd):/data -v $(pwd)/keys:/keys:ro hashicorp/terraform:full"
+alias terraform='docker run -it --rm -w /data -v $(pwd):/data -v $(pwd)/keys:/keys:ro hashicorp/terraform:full'
 
 # init your terraform environment. By bind-mounting our repository directory
 terraform init

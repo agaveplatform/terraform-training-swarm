@@ -1,3 +1,5 @@
+# Define an openstack provider. This should populate with your openstack openrc
+# config as given in your variables and override files.
 provider "openstack" {
   user_name = "${var.openstack_user_name}"
   tenant_name = "${var.openstack_project_name}"
@@ -7,16 +9,23 @@ provider "openstack" {
   domain_name      = "${var.openstack_tenant_name}"
 }
 
+# Add a new keypair to the cluster using the provided keys. These should
+# be the keys you wish to use for operations. They need not be the same ones
+# you have registered with openstack previously. They will be deleted from
+# openstack upon final resource destruction.
 resource "openstack_compute_keypair_v2" "keypair" {
   name = "${var.openstack_keypair_name}"
   public_key = "${file(var.openstack_keypair_public_key_path)}"
 }
 
+# The openstack network to create for the cluster. Do not use an existing
+# netwok name as this will be deleted upon resource destruction.
 resource "openstack_networking_network_v2" "swarm_tf_network1" {
   name           = "swarm_tf_network_1"
   admin_state_up = "true"
 }
 
+# Define the subnet with which to assign the internal cluster ip addresses
 resource "openstack_networking_subnet_v2" "swarm_tf_subnet1" {
   name            = "swarm_tf_subnet_1"
   network_id      = "${openstack_networking_network_v2.swarm_tf_network1.id}"
@@ -26,10 +35,9 @@ resource "openstack_networking_subnet_v2" "swarm_tf_subnet1" {
 }
 
 # Define security groups for public, private, and local port access.
-#
 resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   name = "swarm_tf_secgroup_1"
-  description = "an example security group"
+  description = "Common swarm security group for all nodes. Allowing communciation between swarm nodes and public tcp traffic."
 
   ###########################
   # Public ports
@@ -248,30 +256,36 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   }
 }
 
+# Create a custom router for the swarm
 resource "openstack_networking_router_v2" "swarm_tf_router_1" {
   name             = "swarm_tf_router1"
   external_gateway = "${var.openstack_external_gateway_id}"
 }
 
+# Create a custom network interface
 resource "openstack_networking_router_interface_v2" "swarm_tf_router_interface_1" {
   router_id = "${openstack_networking_router_v2.swarm_tf_router_1.id}"
   subnet_id = "${openstack_networking_subnet_v2.swarm_tf_subnet1.id}"
 }
 
+# Create a floating ip address for the swarm leader
 resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_manager" {
   pool = "public"
 }
 
+# Create a floating ip address for the swarm manager nodes
 resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_managerx" {
   pool = "public"
   count = "${var.swarm_manager_count - 1}"
 }
 
+# Create a floating ip address for the swarm slave nodes
 resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_slave" {
   pool = "public"
   count = "${length(var.swarm_slave_count)}"
 }
 
+# Create a floating ip address for the training nodes
 resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_training" {
   pool = "public"
   count = "${length(var.attendees)}"
