@@ -2,14 +2,7 @@ version: '2.2'
 
 networks:
   monitoring:
-    external:
-      name: monitoring-overlay
   logging:
-    external:
-      name: logging-overlay
-  swarm_overlay:
-    external:
-      name: ${SWARM_OVERLAY_NETWORK_NAME}
 
 services:
 
@@ -18,7 +11,6 @@ services:
     privileged: True
     networks:
       - logging
-      - swarm_overlay
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -35,7 +27,6 @@ services:
     image: basi/logstash:v0.8.0
     networks:
       - logging
-      - swarm_overlay
     ports:
       - 5000:5000
     environment:
@@ -44,7 +35,7 @@ services:
       ELASTICSEARCH_USER:     ${ELASTICSEARCH_USER}
       ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD}
       ELASTICSEARCH_SSL:      ""
-      ELASTICSEARCH_ADDR:     elasticsearch
+      ELASTICSEARCH_ADDR:     ${MONITORING_HOST}
       ELASTICSEARCH_PORT:     9200
     labels:
       - traefik.enable=false
@@ -58,7 +49,6 @@ services:
     privileged: True
     networks:
       - monitoring
-      - swarm_overlay
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock,readonly
       - /:/rootfs
@@ -77,7 +67,6 @@ services:
     privileged: True
     networks:
       - monitoring
-      - swarm_overlay
     volumes:
       - /proc:/host/proc
       - /sys:/host/sys
@@ -98,7 +87,6 @@ services:
     image: basi/socat:v0.1.0
     networks:
       - monitoring
-      - swarm_overlay
     labels:
       - traefik.enable=false
     cpus: 0.05

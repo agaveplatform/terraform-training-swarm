@@ -24,7 +24,8 @@ services:
     labels:
       - traefik.enable=false
     deploy:
-      mode: global
+      placement:
+        constraints: [node.role == manager]
       labels:
         - ops.service.type=proxy
         - ops.service.name=traefik

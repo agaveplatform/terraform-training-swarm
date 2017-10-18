@@ -9,6 +9,7 @@ data "template_file" "swarm_host_monitors_template" {
       SWARM_OVERLAY_NETWORK_NAME  = "${var.swarm_overlay_network_name}"
       ELASTICSEARCH_USER          = "${var.elasticsearch_username}"
       ELASTICSEARCH_PASSWORD      = "${var.elasticsearch_password}"
+      MONITORING_HOST             = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
   }
 }
 
