@@ -45,6 +45,26 @@ variable "openstack_images" {
   }
 }
 
+variable "openstack_network_name" {
+  description = "The name of the network to create. This will be used to generate a random name. Changing this value, changes the network and forces a regeneration"
+  default = "swarm_tf_network_1"
+}
+
+variable "openstack_network_subnet_name" {
+  description = "The name of the network subnet to create. This will be used to generate a random name. Changing this value, changes network subnet and forces a regeneration"
+  default = "swarm_tf_subnet_1"
+}
+
+variable "openstack_router" {
+  description = "The name of the router to create. This will be used to generate a random name. Changing this value, changes the plan router and forces a regeneration."
+  default = "swarm_tf_router1"
+}
+
+variable "openstack_secgroup" {
+  description = "The name of the network to create. This will be used to generate a random name. Changing this value, changes the plan security group and forces a regeneration."
+  default = "swarm_tf_secgroup_1"
+}
+
 variable "openstack_keypair_name" {
 	description = "The name of the openstack keypair to create "
   default = "agave-tf-swarm"
