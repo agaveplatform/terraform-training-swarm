@@ -1,7 +1,7 @@
 version: '3.2'
 
 networks:
-  training:
+  ${TRAINING_USERNAME}-training:
   swarm_overlay:
     external:
       name: ${SWARM_OVERLAY_NETWORK_NAME}
@@ -17,9 +17,6 @@ services:
     image: ${TRAINING_JUPYTER_IMAGE}
     command: start-notebook.sh --NotebookApp.token=''
     hostname: ${TRAINING_VM_HOSTNAME}
-#    extra_hosts:
-#      - "sandbox:${TRAINING_VM_ADDRESS}"
-#      - "${TRAINING_VM_HOSTNAME}-sandbox:${TRAINING_VM_ADDRESS}"
     environment:
       - VM_MACHINE=${TRAINING_VM_MACHINE}
       - VM_IPADDRESS=${TRAINING_VM_ADDRESS}
@@ -32,10 +29,13 @@ services:
     volumes:
       - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
     networks:
-      - training
       - swarm_overlay
+      - ${TRAINING_USERNAME}-training
     ports:
-      - 8005:8005
+      - target: 8005
+        published: 8005
+        protocol: tcp
+        mode: host
     deploy:
       placement:
         constraints:
@@ -48,8 +48,9 @@ services:
         - "environment=training"
         - "traefik.port=8005"
         - "traefik.protocol=http"
+        - "traefik.tags=${TRAINING_USERNAME}"
+        - "traefik.backend=${TRAINING_USERNAME}-training"
         - "traefik.frontend.rule=Host:${TRAINING_VM_HOSTNAME}"
-        - "traefik.backend.loadbalancer.sticky=true"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
       replicas: 1
       resources:

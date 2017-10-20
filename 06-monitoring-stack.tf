@@ -187,6 +187,21 @@ resource "null_resource" "training_node_init_host_monitors" {
     }
   }
 
+  # Tear down the host monitoring stack
+  provisioner "remote-exec" {
+    when = "destroy"
+
+    inline = [
+      "docker-compose -f monitors.compose.yml down",
+    ]
+    connection {
+      host = "${element(openstack_compute_floatingip_associate_v2.training_node.*.floating_ip, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "90s"
+    }
+  }
+
   # Launch the host monitoring docker containers by invoking docker compose
   # with the monitoring compose file.
   provisioner "remote-exec" {

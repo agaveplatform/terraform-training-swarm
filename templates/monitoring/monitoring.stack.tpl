@@ -20,9 +20,10 @@ services:
       labels:
         - "environment=training"
         - "traefik.port=8080"
+        - "traefik.tags=visualizer,monitoring"
+        - "traefik.backend=visualizer"
         - "traefik.protocol=http"
-        - "traefik.frontend.rule=PathPrefixStrip:/viz;Host:ops.${WILDCARD_DOMAIN_NAME}"
-        - "traefik.backend.loadbalancer.sticky=true"
+        - "traefik.frontend.rule=Host:ops-viz.${WILDCARD_DOMAIN_NAME}"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
     networks:
       - swarm_overlay
@@ -34,9 +35,10 @@ services:
       labels:
         - "environment=training"
         - "traefik.port=9000"
+        - "traefik.tags=portainer,monitoring"
+        - "traefik.backend=portainer"
         - "traefik.protocol=http"
-        - "traefik.frontend.rule=PathPrefixStrip:/portainer;Host:ops.${WILDCARD_DOMAIN_NAME}"
-        - "traefik.backend.loadbalancer.sticky=true"
+        - "traefik.frontend.rule=Host:ops-portainer.${WILDCARD_DOMAIN_NAME}"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
       placement:
         constraints: [node.role == manager]
@@ -67,15 +69,16 @@ services:
     ports:
       - "5601:5601"
     networks:
-      - logging
       - swarm_overlay
+      - logging
     deploy:
       labels:
         - "environment=training"
         - "traefik.port=5601"
+        - "traefik.tags=kibana,monitoring"
+        - "traefik.backend=kibana"
         - "traefik.protocol=http"
-        - "traefik.frontend.rule=PathPrefixStrip:/kibana;Host:ops.${WILDCARD_DOMAIN_NAME}"
-        - "traefik.backend.loadbalancer.sticky=true"
+        - "traefik.frontend.rule=Host:ops-kibana.${WILDCARD_DOMAIN_NAME}"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
       mode: replicated
       replicas: 1
@@ -126,9 +129,10 @@ services:
       labels:
         - "environment=training"
         - "traefik.port=3000"
+        - "traefik.tags=grafana,monitoring"
+        - "traefik.backend=grafana"
         - "traefik.protocol=http"
-        - "traefik.frontend.rule=PathPrefixStrip:/grafana;Host:ops.${WILDCARD_DOMAIN_NAME}"
-        - "traefik.backend.loadbalancer.sticky=true"
+        - "traefik.frontend.rule=Host:ops-grafana.${WILDCARD_DOMAIN_NAME}"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
       placement:
         constraints: [node.role == manager]

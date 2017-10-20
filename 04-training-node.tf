@@ -1,5 +1,7 @@
 # Provision the training node(s)
 resource "openstack_compute_instance_v2" "training_node" {
+  depends_on      = ["openstack_compute_instance_v2.swarm_slave"]
+
   name            = "training-node-${var.attendees[count.index]}"
   count           = "${length(var.attendees)}"
 
@@ -91,12 +93,40 @@ resource "null_resource" "training_node_join_cluster" {
   depends_on = ["null_resource.training_node_auth_config"]
   count = "${length(var.attendees)}"
 
+  # Stop all containers and leave the swarm
+  provisioner "remote-exec" {
+    inline = [
+      "[ -z \"$(docker ps -a -q)\" ] && docker stop $(docker ps -a -q) || true",
+      "[ -z \"$(docker ps -a -q)\" ] && docker rm $(docker ps -a -q) || true",
+      "docker swarm leave || true"
+    ]
+    connection {
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "90s"
+    }
+  }
+
+  # Remove the node from the swarm on the master side
+  provisioner "remote-exec" {
+    inline = [
+      "docker node rm ${element(openstack_compute_instance_v2.training_node.*.name, count.index)} || true",
+    ]
+    connection {
+      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "90s"
+    }
+  }
+
   # Initialize the swarm master and configure ssh access between this host and
   # the rest of the swarm via a service account.
   provisioner "remote-exec" {
+    when = "create"
     inline = [
       "scp -o StrictHostKeyChecking=no -o NoHostAuthenticationForLocalhost=yes -o UserKnownHostsFile=/dev/null -i /home/agaveops/.ssh/key.pem agaveops@${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}:/home/agaveops/worker-token /home/agaveops/worker-token",
-      "docker swarm leave || true",
       "echo 'swarm join --token '$(cat /home/agaveops/worker-token)' ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377'",
       "docker swarm join --token $(cat /home/agaveops/worker-token) ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377",
     ]
@@ -110,6 +140,7 @@ resource "null_resource" "training_node_join_cluster" {
 
   # Connect to the swarm manager and assign relevant labels to the training node
   provisioner "remote-exec" {
+    when = "create"
     inline = [
       "echo 'docker node update --role=worker --label-add environment=training --label-add training.name=${var.training_event} --label-add training.user=${var.attendees[count.index]}  ${element(openstack_compute_instance_v2.training_node.*.name, count.index)}'",
       "docker node update --role=worker --label-add 'environment=training' --label-add 'training.name=${var.training_event}' --label-add 'training.user=${var.attendees[count.index]}' ${element(openstack_compute_instance_v2.training_node.*.name, count.index)}"

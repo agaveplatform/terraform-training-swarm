@@ -76,9 +76,6 @@ resource "null_resource" "swarm_manager_init_swarm" {
     inline = [
       "docker swarm init",
       "docker network create --driver overlay --attachable ${var.swarm_overlay_network_name}",
-      "docker network create --driver overlay --attachable monitoring-overlay",
-      "docker network create --driver overlay --attachable logging-overlay",
-      "docker network create --driver overlay --attachable application-overlay",
       "docker swarm join-token --quiet worker > /home/agaveops/worker-token",
       "docker swarm join-token --quiet manager > /home/agaveops/manager-token",
       "docker node update --label-add 'node.labels.environment=training' ${openstack_compute_instance_v2.swarm_manager.name}",

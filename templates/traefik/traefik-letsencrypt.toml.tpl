@@ -42,9 +42,6 @@ defaultEntryPoints=["http","https"]
   [entryPoints.https]
   address = ":443"
     [entryPoints.https.tls]
-      [[entryPoints.https.tls.certificates]]
-      CertFile = "/ssl/${WILDCARD_DOMAIN_NAME}.crt"
-      KeyFile = "/ssl/${WILDCARD_DOMAIN_NAME}.key"
 
 [web]
 address = ":28443"
@@ -63,3 +60,16 @@ readOnly = true
 swarmmode = true
 watch = true
 domain = "${WILDCARD_DOMAIN_NAME}"
+
+# Enable ACME (Let's Encrypt): automatic SSL.
+[acme]
+onDemand = true
+storage = "/ssl/acme.json"
+${COMMENT_OUT_STAGING_SERVER}caServer = "https://acme-staging.api.letsencrypt.org/directory"
+acmeLogging = true
+entryPoint = "https"
+email = "${ACME_EMAIL}"
+
+[[acme.domains]]
+main = "${WILDCARD_DOMAIN_NAME}"
+sans = [${SUBDOMAINS}]

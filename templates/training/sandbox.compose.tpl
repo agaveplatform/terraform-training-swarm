@@ -1,7 +1,7 @@
 version: '3.2'
 
 networks:
-  training:
+  ${TRAINING_USERNAME}-training:
   swarm_overlay:
     external:
       name: ${SWARM_OVERLAY_NETWORK_NAME}
@@ -29,7 +29,7 @@ services:
       - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      - training
+      - ${TRAINING_USERNAME}-training
     deploy:
       placement:
         constraints:
@@ -37,9 +37,9 @@ services:
           - node.labels.training.user == ${TRAINING_USERNAME}
           - node.labels.environment == training
       labels:
-        - node.labels.training.name=${TRAINING_EVENT}
-        - node.labels.training.user=${TRAINING_USERNAME}
-        - node.labels.environment=training
+        - training.name=${TRAINING_EVENT}
+        - training.user=${TRAINING_USERNAME}
+        - environment=training
         - traefik.enable=false
       replicas: 1
       resources:

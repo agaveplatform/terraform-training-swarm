@@ -27,3 +27,14 @@ output "attendee_hosts" {
   description = "A printout of the attendee username and their host ip"
   value = "${join("\n",list(formatlist("%s %s",var.attendees, openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address)))}"
 }
+
+output "started_at" {
+  description = "Time when the plan started running"
+  value = "${timestamp()}"
+}
+
+output "ended_at" {
+  depends_on = ["null_resource.training_deploy_jupyter_stack"]
+  description = "Time when the plan completed running"
+  value = "${timestamp()}"
+}

@@ -79,11 +79,11 @@ terraform init
 # review the changes that will be made when you run the action plan.
 terraform plan
 
-# run the plan and deploy the swarm
-terraform apply
+# run the plan and deploy the swarm. We explicitly restrict parallelism to 3 concurrent tasks as the default of 10 tends to make Jetstream sad at us.
+terraform apply -parallelism=3
 
 # tear it all down
-terraform destroy
+terraform destroy -parallelism=3
 ```
 
 For more information on Terraform an its usage, please see the [official documentation](https://www.terraform.io/docs/index.html).

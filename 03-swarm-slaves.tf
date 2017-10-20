@@ -1,5 +1,6 @@
 # Provision the swarm worker node(s)
 resource "openstack_compute_instance_v2" "swarm_slave" {
+  depends_on      = ["openstack_compute_instance_v2.swarm_managerx"]
   name            = "swarm-slave-${count.index}"
   count           = "${var.swarm_slave_count}"
 
@@ -80,6 +81,7 @@ resource "null_resource" "swarm_slave_join_cluster" {
   provisioner "remote-exec" {
     inline = [
       "scp -o StrictHostKeyChecking=no -o NoHostAuthenticationForLocalhost=yes -o UserKnownHostsFile=/dev/null -i /home/agaveops/.ssh/key.pem agaveops@${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}:/home/agaveops/worker-token /home/agaveops/worker-token",
+      "docker swarm leave || true",
       "echo 'swarm join --token '$(cat /home/agaveops/worker-token)' ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377'",
       "docker swarm join --token $(cat /home/agaveops/worker-token) ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377 || true"
     ]

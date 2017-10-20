@@ -12,15 +12,29 @@ data "template_file" "swarm_reverse_proxy_stack" {
   }
 }
 
-# Renders the traefik.toml used set the runtime Traefik reverse proxy
-# configuration.
-data "template_file" "swarm_reverse_proxy_config" {
-  template = "${file("templates/traefik/traefik.toml.tpl")}"
+# Renders the traefik-letsencrypt.toml used set the runtime Traefik reverse proxy
+# configuration. This version will pull a valid SSL bundle cert from Let's Encrypt
+# that will cover every attendee.
+data "template_file" "swarm_reverse_proxy_ssl_config" {
+  template = "${file("templates/traefik/traefik-letsencrypt.toml.tpl")}"
 
   vars {
       WILDCARD_DOMAIN_NAME        = "${var.wildcard_domain_name}"
+      SUBDOMAINS                  = "${join(",", formatlist("\"%s.%s\"", var.attendees, var.wildcard_domain_name))}" 
+      ACME_EMAIL                  = "${var.acme_email}"
+      COMMENT_OUT_STAGING_SERVER  = "${var.use_production_acme_server ? "#" : "" }"
   }
 }
+
+# Renders the traefik.toml used set the runtime Traefik reverse proxy
+# configuration.
+# data "template_file" "swarm_reverse_proxy_config" {
+#   template = "${file("templates/traefik/traefik.toml.tpl")}"
+#
+#   vars {
+#       WILDCARD_DOMAIN_NAME        = "${var.wildcard_domain_name}"
+#   }
+# }
 
 # Deploy reverse proxy stack file to the swarm masters an start the service on
 # the leader node. Should run after monitoring stack is up and netwoks are
@@ -55,7 +69,7 @@ resource "null_resource" "deploy_reverse_proxy" {
 
   # copies rendered reverse proxy compose stack file to the swarm manager
   provisioner "file" {
-    content      = "${data.template_file.swarm_reverse_proxy_config.rendered}"
+    content      = "${data.template_file.swarm_reverse_proxy_ssl_config.rendered}"
     destination = "/home/agaveops/traefik/traefik.toml"
     connection {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"

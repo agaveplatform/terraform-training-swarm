@@ -243,3 +243,17 @@ variable "wildcard_domain_name" {
   description = "The wildcard subdomain created for this training event"
   default     = "sc17.training.agaveplatform.org"
 }
+
+/***********************************************************
+ * Automated SSL generation with Let's Encrypt
+ ***********************************************************/
+
+variable "acme_email" {
+  description = "The email address sent to Lets Encrypt when requesting a SSL cert"
+  default     = "ssl@agaveplatform.org"
+}
+
+variable "use_production_acme_server" {
+  description = "The wildcard subdomain created for this training event"
+  default     = false
+}

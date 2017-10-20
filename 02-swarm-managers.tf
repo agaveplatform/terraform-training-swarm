@@ -1,6 +1,6 @@
 # Provision the swarm managerx node(s)
 resource "openstack_compute_instance_v2" "swarm_managerx" {
-
+  depends_on      = ["openstack_compute_instance_v2.swarm_manager"]
   name            = "swarm-manager-${count.index+1}"
   count           = "${var.swarm_manager_count - 1}"
 
