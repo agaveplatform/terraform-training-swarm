@@ -13,7 +13,7 @@ data "template_file" "training_sandbox_docker_compose_file" {
   count    = "${length(var.attendees)}"
 
   vars {
-      TRAINING_VM_HOSTNAME        = "${var.attendees[count.index]}.${var.wildcard_domain_name}"
+      TRAINING_VM_HOSTNAME        = "${var.attendees[count.index]}-sandbox.${var.wildcard_domain_name}"
       TRAINING_USERNAME           = "${var.attendees[count.index]}"
       TRAINING_EVENT              = "${var.training_event}"
       TRAINING_VM_MACHINE         = "${element(openstack_compute_instance_v2.training_node.*.name, count.index)}"
@@ -51,6 +51,7 @@ resource "null_resource" "training_sanbox_launch" {
   provisioner "remote-exec" {
     inline = [
       "docker volume create ${var.attendees[count.index]}-training-volume",
+      #"docker run -it ${var.attendees[count.index]}-training-volume",
       "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml up -d ",
     ]
     connection {

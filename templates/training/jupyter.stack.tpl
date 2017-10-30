@@ -11,10 +11,39 @@ volumes:
     external:
       name: ${TRAINING_USERNAME}-training-volume
 
+#secrets:
+#  training/${TRAINING_USERNAME}/hash:
+#    external: true
+
 services:
+  # ${TRAINING_USERNAME}-client-init:
+  #   image: "${TRAINING_JUPYTER_IMAGE}"
+  #   entrypoint: /bin/bash
+  #   command: /home/jovyan/bootstrap.sh
+  #   hostname: apitest-sandbox.gw17.training.agaveplatform.org
+  #   environment:
+  #     - VM_MACHINE=${TRAINING_VM_MACHINE}
+  #     - VM_IPADDRESS=${TRAINING_VM_ADDRESS}
+  #     - VM_HOSTNAME=${TRAINING_VM_HOSTNAME}
+  #     - USE_TUNNEL=False
+  #     - ENVIRONMENT=training
+  #     - AGAVE_USERNAME=${TRAINING_USERNAME}
+  #     - AGAVE_CACHE_DIR=/home/jovyan/work/.agave
+  #   volumes:
+  #     - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
+  #     - ./bootstrap.sh:/home/jovyan/bootstrap.sh
+  #   secrets:
+  #     - tenant_apitest_pass
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
+  #     replicas: 1
+  #     restart_policy:
+  #       condition: none
 
   ${TRAINING_USERNAME}:
-    image: ${TRAINING_JUPYTER_IMAGE}
+    image: "${TRAINING_JUPYTER_IMAGE}"
     command: start-notebook.sh --NotebookApp.token=''
     hostname: ${TRAINING_VM_HOSTNAME}
     environment:
@@ -23,9 +52,11 @@ services:
       - VM_HOSTNAME=${TRAINING_VM_HOSTNAME}
       - USE_TUNNEL=False
       - ENVIRONMENT=training
+      - AGAVE_USERNAME=${TRAINING_USERNAME}
       - AGAVE_CACHE_DIR=/home/jovyan/work/.agave
-      - OAUTH_TOKEN_URL=https://public.agaveapi.co/token
-      - OAUTH_CALLBACK_URL=http://${TRAINING_VM_HOSTNAME}
+      - AGAVE_JSON_PARSER=jq
+#      - OAUTH_TOKEN_URL=https://public.agaveapi.co/token
+#      - OAUTH_CALLBACK_URL=http://${TRAINING_VM_HOSTNAME}
     volumes:
       - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
     networks:
@@ -36,6 +67,8 @@ services:
         published: 8005
         protocol: tcp
         mode: host
+#    secrets:
+#      - training/${TRAINING_USERNAME}/hash
     deploy:
       placement:
         constraints:

@@ -15,6 +15,7 @@ services:
 
   ${TRAINING_USERNAME}-sandbox:
     image: ${TRAINING_SANBOX_IMAGE}
+    hostname: ${TRAINING_VM_HOSTNAME}
     privileged: True
     ports:
       - '10022:22'
@@ -22,6 +23,7 @@ services:
       - VM_MACHINE=${TRAINING_VM_HOSTNAME}
       - VM_IPADDRESS=${TRAINING_VM_ADDRESS}
       - VM_HOSTNAME=${TRAINING_VM_HOSTNAME}
+      - VM_SSH_PORT=10022
       - USE_TUNNEL=False
       - ENVIRONMENT=training
       - AGAVE_CACHE_DIR=/home/jovyan/work/.agave

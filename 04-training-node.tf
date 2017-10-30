@@ -25,19 +25,19 @@ resource "openstack_compute_floatingip_associate_v2" "training_node" {
   floating_ip = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
   instance_id = "${element(openstack_compute_instance_v2.training_node.*.id, count.index)}"
 
-  # Remove this host from the swarm before deleting the node
-  provisioner "remote-exec" {
-    when = "destroy"
-    inline = [
-      "docker swarm leave || true",
-    ]
-    connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
+  # # Remove this host from the swarm before deleting the node
+  # provisioner "remote-exec" {
+  #   when = "destroy"
+  #   inline = [
+  #     "docker swarm leave || true",
+  #   ]
+  #   connection {
+  #     host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+  #     user = "agaveops"
+  #     private_key = "${file(var.openstack_keypair_private_key_path)}"
+  #     timeout = "90s"
+  #   }
+  # }
 }
 
 resource "null_resource" "training_node_auth_config" {
@@ -111,6 +111,7 @@ resource "null_resource" "training_node_join_cluster" {
   # Remove the node from the swarm on the master side
   provisioner "remote-exec" {
     inline = [
+      "sleep 10",
       "docker node rm ${element(openstack_compute_instance_v2.training_node.*.name, count.index)} || true",
     ]
     connection {
@@ -121,6 +122,20 @@ resource "null_resource" "training_node_join_cluster" {
     }
   }
 
+  # # Install rex-ray plugin
+  # provisioner "remote-exec" {
+  #   when = "create"
+  #   inline = [
+  #     "docker plugin install rexray/cinder CINDER_AUTHURL=${var.openstack_auth_url} CINDER_USERNAME=${var.openstack_username} CINDER_PASSWORD=${var.openstack_password} CINDER_TENANTNAME=${var.openstack_project_name} CINDER_DOMAINNAME=${var.openstack_tenant_name}",
+  #   ]
+  #   connection {
+  #     host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+  #     user = "agaveops"
+  #     private_key = "${file(var.openstack_keypair_private_key_path)}"
+  #     timeout = "90s"
+  #   }
+  # }
+
   # Initialize the swarm master and configure ssh access between this host and
   # the rest of the swarm via a service account.
   provisioner "remote-exec" {
@@ -128,7 +143,7 @@ resource "null_resource" "training_node_join_cluster" {
     inline = [
       "scp -o StrictHostKeyChecking=no -o NoHostAuthenticationForLocalhost=yes -o UserKnownHostsFile=/dev/null -i /home/agaveops/.ssh/key.pem agaveops@${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}:/home/agaveops/worker-token /home/agaveops/worker-token",
       "echo 'swarm join --token '$(cat /home/agaveops/worker-token)' ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377'",
-      "docker swarm join --token $(cat /home/agaveops/worker-token) ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377",
+      "docker swarm join --token $(cat /home/agaveops/worker-token) ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377 || true",
     ]
     connection {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
@@ -140,10 +155,9 @@ resource "null_resource" "training_node_join_cluster" {
 
   # Connect to the swarm manager and assign relevant labels to the training node
   provisioner "remote-exec" {
-    when = "create"
     inline = [
       "echo 'docker node update --role=worker --label-add environment=training --label-add training.name=${var.training_event} --label-add training.user=${var.attendees[count.index]}  ${element(openstack_compute_instance_v2.training_node.*.name, count.index)}'",
-      "docker node update --role=worker --label-add 'environment=training' --label-add 'training.name=${var.training_event}' --label-add 'training.user=${var.attendees[count.index]}' ${element(openstack_compute_instance_v2.training_node.*.name, count.index)}"
+      "docker node update --role=worker --label-add 'environment=training' --label-add 'training.name=${var.training_event}' --label-add 'training.user=${var.attendees[count.index]}' ${element(openstack_compute_instance_v2.training_node.*.name, count.index)} || true"
     ]
     connection {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
