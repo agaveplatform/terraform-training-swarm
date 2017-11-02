@@ -1,3 +1,65 @@
+
+# Creates an Agave storage system template for each training user
+# The system is configured to point to the attendee's training VM
+module "training_sandbox_example_systems" {
+  source = "./modules/agave/systems"
+
+  access_token = "${module.tokens.access_token}"
+
+  system_host = "${var.system_host}"
+
+  system_port = "${module.tokens.system_port}"
+
+  system_username = "${module.tokens.system_username}"
+
+  system_public_key = "${system_public_key}"
+
+  system_private_key = "${module.tokens.system_private_key}"
+}
+
+data "template_file" "storage_system" {
+  template = "${file("templates/agave/systems/storage.json.tpl")}"
+  count    = "${length(var.attendees)}"
+
+  vars {
+      SYSTEM_HOST           = "${var.system_host}"
+      SYSTEM_PORT           = "${var.system_port}"
+      SYSTEM_USERNAME       = "${var.system_username}"
+      SYSTEM_PUBLIC_KEY     = "${var.system_public_key}"
+      SYSTEM_PRIVATE_KEY    = "${var.system_private_key}"
+      AGAVE_USERNAME        = "${var.username}"
+  }
+}
+
+resource "null_resource" "training_sandbox_storage_system" {
+
+  # create a new system or update an existing system for the current user
+  provisioner "local_exec" {
+    command = "echo '${data.template_file.compute_system.rendered}' | curl -X POST -H 'Authorization: Bearer ${var.access_token}' -H 'ContentType: application/json' --data-binary @- '${agave_tenant_base_url}/systems/v2'"
+  }
+
+  # delete the compute system
+  provisioner "local_exec" {
+    when = "destroy"
+    command = "curl -X DELETE -H 'Authorization: Bearer ${var.agave_user_account_creation_auth_token}' '${agave_tenant_base_url}/systems/v2/jetstream-exec-${var.username}'"
+  }
+}
+
+# Renders the user compute system with the passed in connectivity variables
+data "template_file" "compute_system" {
+  template = "${file(module.path + "/templates/compute.json.tpl")}"
+
+  vars {
+      SYSTEM_HOST           = "${var.system_host}"
+      SYSTEM_PORT           = "${var.system_port}"
+      SYSTEM_USERNAME       = "${var.system_username}"
+      SYSTEM_PUBLIC_KEY     = "${var.system_public_key}"
+      SYSTEM_PRIVATE_KEY    = "${var.system_private_key}"
+      AGAVE_USERNAME        = "${var.username}"
+  }
+}
+
+
 # The training sandbox is started as a Docker Compose service on each host
 # due to the need for the privileged flag to bind-mount the docker socket
 # to enabled container builds. The compose file joins the swarm overlay
@@ -17,7 +79,7 @@ data "template_file" "training_sandbox_docker_compose_file" {
       TRAINING_USERNAME           = "${var.attendees[count.index]}"
       TRAINING_EVENT              = "${var.training_event}"
       TRAINING_VM_MACHINE         = "${element(openstack_compute_instance_v2.training_node.*.name, count.index)}"
-      TRAINING_VM_ADDRESS         = "${element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index)}"
+      TRAINING_VM_ADDRESS         = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       SWARM_OVERLAY_NETWORK_NAME  = "${var.swarm_overlay_network_name}"
       TRAINING_SANBOX_IMAGE       = "${var.sandbox_image}"
       TRAINING_JUPYTER_IMAGE      = "${var.jupyter_image}"
@@ -36,22 +98,10 @@ resource "null_resource" "training_sanbox_launch" {
 
   # copies compose file with network stack to the swarm master
   provisioner "file" {
-    source       = "templates/training/INSTALL.ipynb"
-    destination   = "/home/agaveops/INSTALL.ipynb"
-    connection {
-      host = "${element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index)}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
-
-  # copies compose file with network stack to the swarm master
-  provisioner "file" {
     content       = "${element(data.template_file.training_sandbox_docker_compose_file.*.rendered, count.index)}"
     destination   = "/home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml"
     connection {
-      host = "${element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index)}"
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -63,12 +113,11 @@ resource "null_resource" "training_sanbox_launch" {
   provisioner "remote-exec" {
     inline = [
       "docker volume create ${var.attendees[count.index]}-training-volume",
-      "docker pull --ignore-pull-failures --parallel ${var.jupyter_image}",
-      "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml pull --ignore-pull-failures --parallel",
+      "docker run -it ${var.attendees[count.index]}-training-volume",
       "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml up -d ",
     ]
     connection {
-      host = "${element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index)}"
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -100,7 +149,7 @@ data "template_file" "training_jupyter_stack_template" {
       TRAINING_USERNAME           = "${var.attendees[count.index]}"
       TRAINING_EVENT              = "${var.training_event}"
       TRAINING_VM_MACHINE         = "${element(openstack_compute_instance_v2.training_node.*.name, count.index)}"
-      TRAINING_VM_ADDRESS         = "${element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index)}"
+      TRAINING_VM_ADDRESS         = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       SWARM_OVERLAY_NETWORK_NAME  = "${var.swarm_overlay_network_name}"
       TRAINING_SANBOX_IMAGE       = "${var.sandbox_image}"
       TRAINING_JUPYTER_IMAGE      = "${var.jupyter_image}"
@@ -120,7 +169,7 @@ resource "null_resource" "training_deploy_jupyter_stack" {
     content        = "${element(data.template_file.training_jupyter_stack_template.*.rendered, count.index)}"
     destination   = "/home/agaveops/jupyter.stack.${var.attendees[count.index]}.yml"
     connection {
-      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
+      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -134,7 +183,7 @@ resource "null_resource" "training_deploy_jupyter_stack" {
       "docker stack deploy -c /home/agaveops/jupyter.stack.${var.attendees[count.index]}.yml ${var.attendees[count.index]}_training",
     ]
     connection {
-      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
+      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"

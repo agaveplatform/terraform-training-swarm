@@ -4,22 +4,14 @@ resource "openstack_compute_instance_v2" "swarm_manager" {
   count           = 1
 
   image_id        = "${var.openstack_images["ubuntu1604"]}"
-
-  flavor_id       = "${var.openstack_flavor["m1_medium"]}"
+  availability_zone = "${var.openstack_availability_zone}"
+  flavor_id       = "${var.openstack_flavor["m2_medium"]}"
   key_pair        = "${openstack_compute_keypair_v2.keypair.name}"
   security_groups = ["${openstack_compute_secgroup_v2.swarm_tf_secgroup_1.name}"]
 
   network {
-    name          = "${openstack_networking_network_v2.swarm_tf_network1.name}"
+    name          = "${var.openstack_network_name}"
   }
-}
-
-# Assign floating ip to the swarm leader for external connectivity
-resource "openstack_compute_floatingip_associate_v2" "swarm_manager" {
-  # uncomment to assign a new floating ip with each deployment
-  #floating_ip = "${openstack_networking_floatingip_v2.swarm_tf_floatip_manager.address}"
-  floating_ip = "149.165.157.242"
-  instance_id = "${openstack_compute_instance_v2.swarm_manager.id}"
 }
 
 resource "null_resource" "swarm_manager_configure_auth" {
@@ -30,7 +22,7 @@ resource "null_resource" "swarm_manager_configure_auth" {
     content      = "${file(var.openstack_keypair_private_key_path)}"
     destination = "/home/agaveops/.ssh/key.pem"
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -43,7 +35,7 @@ resource "null_resource" "swarm_manager_configure_auth" {
     content      = "${file(var.openstack_keypair_public_key_path)}"
     destination = "/home/agaveops/.ssh/key.pub"
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -60,7 +52,7 @@ resource "null_resource" "swarm_manager_configure_auth" {
       "chown -R agaveops /home/agaveops/.ssh"
     ]
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -81,7 +73,7 @@ resource "null_resource" "swarm_manager_init_swarm" {
       "docker node update --label-add 'node.labels.environment=training' ${openstack_compute_instance_v2.swarm_manager.name}",
     ]
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"

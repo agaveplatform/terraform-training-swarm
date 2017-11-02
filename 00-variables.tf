@@ -81,6 +81,10 @@ variable "openstack_keypair_private_key_path" {
   default = "/keys/key.pem"
 }
 
+variable "openstack_availability_zone" {
+  description = "The availability zone of the instances created by this plan"
+  default = "melbourne-np"
+}
 
 /**
 * OpenStack Flavors
@@ -122,7 +126,6 @@ variable "openstack_network_subnet_cidr" {
   description = "The cidr of the network subnet to create"
   default = "10.10.0.0/24"
 }
-
 
  /***********************************************************
   * Swarm Configuration Parameters
@@ -244,8 +247,13 @@ variable "wildcard_domain_name" {
   default     = "sc17.training.agaveplatform.org"
 }
 
+variable "namecheap_api_token" {
+  description = "API token for updating namecheap dynamic dns records"
+  default     = "44c6090c739447e9abced93bbefcb48c"
+}
+
 /***********************************************************
- * Automated SSL generation with Let's Encrypt
+ * Automated SSL generation with Lets Encrypt
  ***********************************************************/
 
 variable "acme_email" {

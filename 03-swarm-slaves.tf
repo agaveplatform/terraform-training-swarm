@@ -5,23 +5,16 @@ resource "openstack_compute_instance_v2" "swarm_slave" {
   count           = "${var.swarm_slave_count}"
 
   image_id        = "${var.openstack_images["ubuntu1604"]}"
-
-  flavor_id       = "${var.openstack_flavor["m1_medium"]}"
+  availability_zone = "${var.openstack_availability_zone}"
+  flavor_id       = "${var.openstack_flavor["m2_medium"]}"
   key_pair        = "${openstack_compute_keypair_v2.keypair.name}"
   security_groups = ["${openstack_compute_secgroup_v2.swarm_tf_secgroup_1.name}"]
 
   #user_data       = "${data.template_file.slaveinit.rendered}"
 
   network {
-    name          = "${openstack_networking_network_v2.swarm_tf_network1.name}"
+    name          = "${var.openstack_network_name}"
   }
-}
-
-# Assign floating ip to the swarm slaves for external connectivity.
-resource "openstack_compute_floatingip_associate_v2" "swarm_slave" {
-  count = "${var.swarm_slave_count}"
-  floating_ip = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
-  instance_id = "${element(openstack_compute_instance_v2.swarm_slave.*.id, count.index)}"
 }
 
 resource "null_resource" "swarm_slave_configure_auth" {
@@ -34,7 +27,7 @@ resource "null_resource" "swarm_slave_configure_auth" {
     content      = "${file(var.openstack_keypair_private_key_path)}"
     destination = "/home/agaveops/.ssh/key.pem"
     connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
+      host = "${element(openstack_compute_instance_v2.swarm_slave.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -47,7 +40,7 @@ resource "null_resource" "swarm_slave_configure_auth" {
     content      = "${file(var.openstack_keypair_public_key_path)}"
     destination = "/home/agaveops/.ssh/key.pub"
     connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
+      host = "${element(openstack_compute_instance_v2.swarm_slave.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -64,7 +57,7 @@ resource "null_resource" "swarm_slave_configure_auth" {
       "chown -R agaveops:agaveops /home/agaveops/.ssh"
     ]
     connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
+      host = "${element(openstack_compute_instance_v2.swarm_slave.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -80,13 +73,13 @@ resource "null_resource" "swarm_slave_join_cluster" {
   # Connect to the slave node and join the host to the swarm as a worker node
   provisioner "remote-exec" {
     inline = [
-      "scp -o StrictHostKeyChecking=no -o NoHostAuthenticationForLocalhost=yes -o UserKnownHostsFile=/dev/null -i /home/agaveops/.ssh/key.pem agaveops@${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}:/home/agaveops/worker-token /home/agaveops/worker-token",
+      "scp -o StrictHostKeyChecking=no -o NoHostAuthenticationForLocalhost=yes -o UserKnownHostsFile=/dev/null -i /home/agaveops/.ssh/key.pem agaveops@${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:/home/agaveops/worker-token /home/agaveops/worker-token",
       "docker swarm leave || true",
       "echo 'swarm join --token '$(cat /home/agaveops/worker-token)' ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377'",
       "docker swarm join --token $(cat /home/agaveops/worker-token) ${openstack_compute_instance_v2.swarm_manager.access_ip_v4}:2377 || true"
     ]
     connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
+      host = "${element(openstack_compute_instance_v2.swarm_slave.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -100,7 +93,7 @@ resource "null_resource" "swarm_slave_join_cluster" {
       "docker node update --label-add 'environment=swarm' ${element(openstack_compute_instance_v2.swarm_slave.*.name, count.index)}"
     ]
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"

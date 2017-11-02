@@ -6,7 +6,7 @@ resource "null_resource" "ansible_inventory" {
   }
 
   provisioner "local-exec" {
-    command = "echo \"${format("%s %s ansible_ssh_user=%s", openstack_compute_instance_v2.swarm_manager.name, openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip, var.ssh_user)}\" >> ansible/${var.swarm_environment}"
+    command = "echo \"${format("%s %s ansible_ssh_user=%s", openstack_compute_instance_v2.swarm_manager.name, openstack_compute_instance_v2.swarm_manager.access_ip_v4, var.ssh_user)}\" >> ansible/${var.swarm_environment}"
   }
 }
 
@@ -15,7 +15,7 @@ resource "null_resource" "ansible_inventory_managers" {
   count = "${var.swarm_manager_count - 1}"
 
   provisioner "local-exec" {
-    command = "echo \"${format("%s %s ansible_ssh_user=%s", element(openstack_compute_instance_v2.swarm_managerx.*.name, count.index), element(openstack_compute_floatingip_associate_v2.swarm_managerx.*.floating_ip, count.index), var.ssh_user)}\" >> ansible/${var.swarm_environment}"
+    command = "echo \"${format("%s %s ansible_ssh_user=%s", element(openstack_compute_instance_v2.swarm_managerx.*.name, count.index), element(openstack_compute_instance_v2.swarm_managerx.*.access_ip_v4, count.index), var.ssh_user)}\" >> ansible/${var.swarm_environment}"
   }
 
 }
@@ -36,7 +36,7 @@ resource "null_resource" "ansible_inventory_slaves" {
   count = "${var.swarm_slave_count}"
 
   provisioner "local-exec" {
-    command = "echo \"${format("%s %s ansible_ssh_user=%s", element(openstack_compute_instance_v2.swarm_slave.*.name, count.index), element(openstack_compute_floatingip_associate_v2.swarm_slave.*.floating_ip, count.index), var.ssh_user)}\" >> ansible/${var.swarm_environment}"
+    command = "echo \"${format("%s %s ansible_ssh_user=%s", element(openstack_compute_instance_v2.swarm_slave.*.name, count.index), element(openstack_compute_instance_v2.swarm_slave.*.access_ip_v4, count.index), var.ssh_user)}\" >> ansible/${var.swarm_environment}"
   }
 }
 
@@ -57,7 +57,7 @@ resource "null_resource" "ansible_inventory_training" {
   count = "${var.swarm_slave_count}"
 
   provisioner "local-exec" {
-    command = "echo \"${format("%s %s ansible_ssh_user=%s", element(openstack_compute_instance_v2.training_node.*.name, count.index), element(openstack_compute_floatingip_associate_v2.training_node.*.floating_ip, count.index), var.ssh_user)}\" >> ansible/${var.swarm_environment}"
+    command = "echo \"${format("%s %s ansible_ssh_user=%s", element(openstack_compute_instance_v2.training_node.*.name, count.index), element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index), var.ssh_user)}\" >> ansible/${var.swarm_environment}"
   }
 }
 

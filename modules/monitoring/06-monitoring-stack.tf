@@ -9,7 +9,7 @@ data "template_file" "swarm_host_monitors_template" {
       SWARM_OVERLAY_NETWORK_NAME  = "${var.swarm_overlay_network_name}"
       ELASTICSEARCH_USER          = "${var.elasticsearch_username}"
       ELASTICSEARCH_PASSWORD      = "${var.elasticsearch_password}"
-      MONITORING_HOST             = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      MONITORING_HOST             = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
   }
 }
 
@@ -43,7 +43,7 @@ resource "null_resource" "swarm_manager_deploy_monitoring_stack" {
     content      = "${data.template_file.swarm_monitoring_stack_template.rendered}"
     destination = "/home/agaveops/monitoring.stack.yml"
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -57,7 +57,7 @@ resource "null_resource" "swarm_manager_deploy_monitoring_stack" {
       "docker stack deploy -c monitoring.stack.yml monitoring",
     ]
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -76,7 +76,7 @@ resource "null_resource" "swarm_master_init_host_monitors" {
     content      = "${data.template_file.swarm_host_monitors_template.rendered}"
     destination = "/home/agaveops/monitors.compose.yml"
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -90,7 +90,7 @@ resource "null_resource" "swarm_master_init_host_monitors" {
       "docker-compose -f monitors.compose.yml up -d",
     ]
     connection {
-      host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
+      host = "${openstack_compute_instance_v2.swarm_manager.access_ip_v4}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -111,7 +111,7 @@ resource "null_resource" "swarm_masterx_init_host_monitors" {
     content      = "${data.template_file.swarm_host_monitors_template.rendered}"
     destination = "/home/agaveops/monitors.compose.yml"
     connection {
-      host = "${element(openstack_compute_floatingip_associate_v2.swarm_managerx.*.floating_ip, count.index)}"
+      host = "${element(openstack_compute_instance_v2.swarm_managerx.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -125,7 +125,7 @@ resource "null_resource" "swarm_masterx_init_host_monitors" {
       "docker-compose -f monitors.compose.yml up -d",
     ]
     connection {
-      host = "${element(openstack_compute_floatingip_associate_v2.swarm_managerx.*.floating_ip, count.index)}"
+      host = "${element(openstack_compute_instance_v2.swarm_managerx.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -145,7 +145,7 @@ resource "null_resource" "swarm_slave_init_host_monitors" {
     content      = "${data.template_file.swarm_host_monitors_template.rendered}"
     destination = "/home/agaveops/monitors.compose.yml"
     connection {
-      host = "${element(openstack_compute_floatingip_associate_v2.swarm_slave.*.floating_ip, count.index)}"
+      host = "${element(openstack_compute_instance_v2.swarm_slave.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -159,7 +159,7 @@ resource "null_resource" "swarm_slave_init_host_monitors" {
       "docker-compose -f monitors.compose.yml up -d",
     ]
     connection {
-      host = "${element(openstack_compute_floatingip_associate_v2.swarm_slave.*.floating_ip, count.index)}"
+      host = "${element(openstack_compute_instance_v2.swarm_slave.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -180,7 +180,7 @@ resource "null_resource" "training_node_init_host_monitors" {
     content      = "${data.template_file.swarm_host_monitors_template.rendered}"
     destination = "/home/agaveops/monitors.compose.yml"
     connection {
-      host = "${element(openstack_compute_floatingip_associate_v2.training_node.*.floating_ip, count.index)}"
+      host = "${element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -195,7 +195,7 @@ resource "null_resource" "training_node_init_host_monitors" {
       "docker-compose -f monitors.compose.yml down",
     ]
     connection {
-      host = "${element(openstack_compute_floatingip_associate_v2.training_node.*.floating_ip, count.index)}"
+      host = "${element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
@@ -209,7 +209,7 @@ resource "null_resource" "training_node_init_host_monitors" {
       "docker-compose -f monitors.compose.yml up -d",
     ]
     connection {
-      host = "${element(openstack_compute_floatingip_associate_v2.training_node.*.floating_ip, count.index)}"
+      host = "${element(openstack_compute_instance_v2.training_node.*.access_ip_v4, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"

@@ -30,22 +30,22 @@ resource "random_id" "network" {
 
   byte_length = 8
 }
-
-# The openstack network to create for the cluster. Do not use an existing
-# netwok name as this will be deleted upon resource destruction.
-resource "openstack_networking_network_v2" "swarm_tf_network1" {
-  name           = "${random_id.network.keepers.openstack_network_name}"
-  admin_state_up = "true"
-}
-
-# Define the subnet with which to assign the internal cluster ip addresses
-resource "openstack_networking_subnet_v2" "swarm_tf_subnet1" {
-  name            = "${random_id.network.keepers.openstack_network_subnet_name}"
-  network_id      = "${openstack_networking_network_v2.swarm_tf_network1.id}"
-  cidr            = "${var.openstack_network_subnet_cidr}"
-  ip_version      = 4
-  dns_nameservers = ["8.8.8.8", "8.8.4.4"]
-}
+#
+# # The openstack network to create for the cluster. Do not use an existing
+# # netwok name as this will be deleted upon resource destruction.
+# resource "openstack_networking_network_v2" "swarm_tf_network1" {
+#   name           = "${random_id.network.keepers.openstack_network_name}"
+#   admin_state_up = "true"
+# }
+#
+# # Define the subnet with which to assign the internal cluster ip addresses
+# resource "openstack_networking_subnet_v2" "swarm_tf_subnet1" {
+#   name            = "${random_id.network.keepers.openstack_network_subnet_name}"
+#   network_id      = "${openstack_networking_network_v2.swarm_tf_network1.id}"
+#   cidr            = "${var.openstack_network_subnet_cidr}"
+#   ip_version      = 4
+#   dns_nameservers = ["8.8.8.8", "8.8.4.4"]
+# }
 
 # Define security groups for public, private, and local port access.
 resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
@@ -105,6 +105,14 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
     cidr        = "0.0.0.0/0"
   }
 
+  # SSH to sandbox containers
+  rule {
+    ip_protocol = "tcp"
+    from_port   = 8005
+    to_port     = 8005
+    cidr        = "0.0.0.0/0"
+  }
+
   # Kibana web app
   rule {
     ip_protocol = "tcp"
@@ -135,12 +143,12 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
 
   # connect to internal network hosts on any tcp port
   # comment out to restrict tcp traffic to named ports from the lan
-  rule {
-    ip_protocol = "tcp"
-    from_port   = "1"
-    to_port     = "65535"
-    cidr        = "${var.openstack_network_subnet_cidr}"
-  }
+  # rule {
+  #   ip_protocol = "tcp"
+  #   from_port   = "1"
+  #   to_port     = "65535"
+  #   cidr        = "${var.openstack_network_subnet_cidr}"
+  # }
 
   # # prometheus accessible from network hosts
   # rule {
@@ -205,7 +213,7 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   #   to_port     = "7946"
   #   cidr        = "${var.openstack_network_subnet_cidr}"
   # }
-  #
+
   # # swarm udp network discovery
   # rule {
   #   ip_protocol = "udp"
@@ -213,27 +221,27 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   #   to_port     = "7946"
   #   cidr        = "${var.openstack_network_subnet_cidr}"
   # }
-
-  # swarm udp ingress network
-  rule {
-    ip_protocol = "udp"
-    from_port   = "4789"
-    to_port     = "4789"
-    cidr        = "${var.openstack_network_subnet_cidr}"
-  }
+  #
+  # # swarm udp ingress network
+  # rule {
+  #   ip_protocol = "udp"
+  #   from_port   = "4789"
+  #   to_port     = "4789"
+  #   cidr        = "${var.openstack_network_subnet_cidr}"
+  # }
 
   ###########################
   # Local & Security group ports
   ###########################
 
-  # # connect to internal network hosts on any tcp port
-  # # comment out to restrict tcp traffic to named ports from localhost
-  # rule {
-  #   ip_protocol = "tcp"
-  #   from_port   = "1"
-  #   to_port     = "65535"
-  #   self        = true
-  # }
+  # connect to internal network hosts on any tcp port
+  # comment out to restrict tcp traffic to named ports from localhost
+  rule {
+    ip_protocol = "tcp"
+    from_port   = "1"
+    to_port     = "65535"
+    self        = true
+  }
   #
   # # connect to localhost on any udp port
   # rule {
@@ -259,6 +267,22 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   #   to_port     = 2375
   #   self        = true
   # }
+  #
+  # swarm udp network discovery
+  rule {
+    ip_protocol = "udp"
+    from_port   = "7946"
+    to_port     = "7946"
+    self        = true
+  }
+
+  # swarm udp ingress network
+  rule {
+    ip_protocol = "udp"
+    from_port   = "4789"
+    to_port     = "4789"
+    self        = true
+  }
 
   # icmp to self on any port
   rule {
@@ -269,37 +293,37 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   }
 }
 
-# Create a custom router for the swarm
-resource "openstack_networking_router_v2" "swarm_tf_router_1" {
-  name             = "${random_id.network.keepers.openstack_router}"
-  external_gateway = "${var.openstack_external_gateway_id}"
-}
-
-# Create a custom network interface
-resource "openstack_networking_router_interface_v2" "swarm_tf_router_interface_1" {
-  router_id = "${openstack_networking_router_v2.swarm_tf_router_1.id}"
-  subnet_id = "${openstack_networking_subnet_v2.swarm_tf_subnet1.id}"
-}
-
-# Create a floating ip address for the swarm leader
-resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_manager" {
-  pool = "public"
-}
-
-# Create a floating ip address for the swarm manager nodes
-resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_managerx" {
-  pool = "public"
-  count = "${var.swarm_manager_count - 1}"
-}
-
-# Create a floating ip address for the swarm slave nodes
-resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_slave" {
-  pool = "public"
-  count = "${length(var.swarm_slave_count)}"
-}
-
-# Create a floating ip address for the training nodes
-resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_training" {
-  pool = "public"
-  count = "${length(var.attendees)}"
-}
+# # Create a custom router for the swarm
+# resource "openstack_networking_router_v2" "swarm_tf_router_1" {
+#   name             = "${random_id.network.keepers.openstack_router}"
+#   external_gateway = "${var.openstack_external_gateway_id}"
+# }
+#
+# # Create a custom network interface
+# resource "openstack_networking_router_interface_v2" "swarm_tf_router_interface_1" {
+#   router_id = "${openstack_networking_router_v2.swarm_tf_router_1.id}"
+#   subnet_id = "${openstack_networking_subnet_v2.swarm_tf_subnet1.id}"
+# }
+#
+# # Create a floating ip address for the swarm leader
+# resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_manager" {
+#   pool = "public"
+# }
+#
+# # Create a floating ip address for the swarm manager nodes
+# resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_managerx" {
+#   pool = "public"
+#   count = "${var.swarm_manager_count - 1}"
+# }
+#
+# # Create a floating ip address for the swarm slave nodes
+# resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_slave" {
+#   pool = "public"
+#   count = "${length(var.swarm_slave_count)}"
+# }
+#
+# # Create a floating ip address for the training nodes
+# resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_training" {
+#   pool = "public"
+#   count = "${length(var.attendees)}"
+# }

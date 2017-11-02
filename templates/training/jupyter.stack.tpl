@@ -59,6 +59,7 @@ services:
 #      - OAUTH_CALLBACK_URL=http://${TRAINING_VM_HOSTNAME}
     volumes:
       - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
+      - /home/agaveops/INSTALL.ipynb:/home/jovyan/INSTALL.ipynb
     networks:
       - swarm_overlay
       - ${TRAINING_USERNAME}-training
