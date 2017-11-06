@@ -83,7 +83,7 @@ variable "openstack_keypair_private_key_path" {
 
 variable "openstack_availability_zone" {
   description = "The availability zone of the instances created by this plan"
-  default = "melbourne-np"
+  default = "sydney-np"
 }
 
 /**
