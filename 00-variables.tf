@@ -248,7 +248,7 @@ variable "wildcard_domain_name" {
 }
 
 variable "namecheap_api_token" {
-  description = "API token for updating namecheap dynamic dns records"
+  description = "API token for updating namecheap dynamic dns records. Do not use if running in the official terraform container."
   default     = "44c6090c739447e9abced93bbefcb48c"
 }
 
