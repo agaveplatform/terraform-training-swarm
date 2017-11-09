@@ -5,7 +5,7 @@ resource "openstack_compute_instance_v2" "swarm_manager" {
 
   image_id        = "${var.openstack_images["ubuntu1604"]}"
 
-  flavor_id       = "${var.openstack_flavor["m1_medium"]}"
+  flavor_id       = "${var.openstack_flavor["m1_small"]}"
   key_pair        = "${openstack_compute_keypair_v2.keypair.name}"
   security_groups = ["${openstack_compute_secgroup_v2.swarm_tf_secgroup_1.name}"]
 

@@ -17,6 +17,7 @@ services:
     image: ${TRAINING_SANBOX_IMAGE}
     hostname: ${TRAINING_VM_HOSTNAME}
     privileged: True
+    restart: on-failure
     ports:
       - '10022:22'
     environment:

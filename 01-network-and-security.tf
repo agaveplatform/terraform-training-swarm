@@ -129,6 +129,14 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
     cidr        = "0.0.0.0/0"
   }
 
+  # Jupyter HTTP traffic
+  rule {
+    ip_protocol = "tcp"
+    from_port   = 8005
+    to_port     = 8005
+    cidr        = "0.0.0.0/0"
+  }
+
   ###########################
   # Private network ports
   ###########################
@@ -226,14 +234,14 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   # Local & Security group ports
   ###########################
 
-  # # connect to internal network hosts on any tcp port
-  # # comment out to restrict tcp traffic to named ports from localhost
-  # rule {
-  #   ip_protocol = "tcp"
-  #   from_port   = "1"
-  #   to_port     = "65535"
-  #   self        = true
-  # }
+  # connect to internal network hosts on any tcp port
+  # comment out to restrict tcp traffic to named ports within a security group
+  rule {
+    ip_protocol = "tcp"
+    from_port   = "1"
+    to_port     = "65535"
+    self        = true
+  }
   #
   # # connect to localhost on any udp port
   # rule {
@@ -259,6 +267,30 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   #   to_port     = 2375
   #   self        = true
   # }
+
+  # swarm tcp network discovery
+  rule {
+    ip_protocol = "tcp"
+    from_port   = "7946"
+    to_port     = "7946"
+    self        = true
+  }
+
+  # swarm udp network discovery
+  rule {
+    ip_protocol = "udp"
+    from_port   = "7946"
+    to_port     = "7946"
+    self        = true
+  }
+
+  # swarm udp ingress network
+  rule {
+    ip_protocol = "udp"
+    from_port   = "4789"
+    to_port     = "4789"
+    self        = true
+  }
 
   # icmp to self on any port
   rule {

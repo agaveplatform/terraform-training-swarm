@@ -16,32 +16,6 @@ volumes:
 #    external: true
 
 services:
-  # ${TRAINING_USERNAME}-client-init:
-  #   image: "${TRAINING_JUPYTER_IMAGE}"
-  #   entrypoint: /bin/bash
-  #   command: /home/jovyan/bootstrap.sh
-  #   hostname: apitest-sandbox.gw17.training.agaveplatform.org
-  #   environment:
-  #     - VM_MACHINE=${TRAINING_VM_MACHINE}
-  #     - VM_IPADDRESS=${TRAINING_VM_ADDRESS}
-  #     - VM_HOSTNAME=${TRAINING_VM_HOSTNAME}
-  #     - USE_TUNNEL=False
-  #     - ENVIRONMENT=training
-  #     - AGAVE_USERNAME=${TRAINING_USERNAME}
-  #     - AGAVE_CACHE_DIR=/home/jovyan/work/.agave
-  #   volumes:
-  #     - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
-  #     - ./bootstrap.sh:/home/jovyan/bootstrap.sh
-  #   secrets:
-  #     - tenant_apitest_pass
-  #   deploy:
-  #     placement:
-  #       constraints:
-  #         - node.role == manager
-  #     replicas: 1
-  #     restart_policy:
-  #       condition: none
-
   ${TRAINING_USERNAME}:
     image: "${TRAINING_JUPYTER_IMAGE}"
     command: start-notebook.sh --NotebookApp.token=''
@@ -52,13 +26,31 @@ services:
       - VM_HOSTNAME=${TRAINING_VM_HOSTNAME}
       - USE_TUNNEL=False
       - ENVIRONMENT=training
-      - AGAVE_USERNAME=${TRAINING_USERNAME}
+      - SCRATCH_DIR=/home/jovyan
+      - MACHINE_USERNAME=jovyan
+      - MACHINE_IP=${TRAINING_VM_ADDRESS}
+      - MACHINE_NAME=${TRAINING_USERNAME}
+      - MACHINE_PORT=10022
+      - DOCKERHUB_NAME=stevenrbrandt
+      - AGAVE_APP_DEPLOYMENT_PATH=agave-deployment
       - AGAVE_CACHE_DIR=/home/jovyan/work/.agave
       - AGAVE_JSON_PARSER=jq
-#      - OAUTH_TOKEN_URL=https://public.agaveapi.co/token
-#      - OAUTH_CALLBACK_URL=http://${TRAINING_VM_HOSTNAME}
+      - AGAVE_SYSTEM_SITE_DOMAIN=localhost
+      - AGAVE_TENANT=agave.prod
+      - AGAVE_TENANTS_API_BASEURL=https://agaveapi.co/tenants
+      - AGAVE_USERNAME=${TRAINING_USERNAME}
+      - AGAVE_PASSWORD=${TRAINING_USER_PASS}
+      - AGAVE_SYSTEM_HOST=${TRAINING_VM_ADDRESS}
+      - AGAVE_SYSTEM_PORT=10022
+      - AGAVE_SYSTEM_SITE_DOMAIN=jetstream-cloud.org
+      - AGAVE_STORAGE_WORK_DIR=/home/jovyan
+      - AGAVE_STORAGE_HOME_DIR=/home/jovyan
+      - AGAVE_APP_NAME=funwave-tvd-${TRAINING_EVENT}-${TRAINING_USERNAME}
+      - AGAVE_STORAGE_SYSTEM_ID=nectar-storage-${TRAINING_USERNAME}
+      - AGAVE_EXECUTION_SYSTEM_ID=nectar-exec-${TRAINING_USERNAME}
     volumes:
       - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
+      - /home/agaveops/INSTALL.ipynb:/home/jovyan/INSTALL.ipynb
     networks:
       - swarm_overlay
       - ${TRAINING_USERNAME}-training

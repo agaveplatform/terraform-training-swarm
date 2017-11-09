@@ -1,7 +1,7 @@
 # Renders the traefik stack file which configures and runs the Traefik reverse
 # proxy as a Docker Swarm service, exposing all http notebooks via a dynamic
 # subdomain per user. This should be run on publicly exposed hosts and started
-# after the monitoring stack is started on the manager node(s).
+# after the monitoring stack (if enabled) is started on the manager node(s).
 data "template_file" "swarm_reverse_proxy_stack" {
   template = "${file("templates/traefik/traefik.stack.tpl")}"
 
@@ -20,7 +20,7 @@ data "template_file" "swarm_reverse_proxy_ssl_config" {
 
   vars {
       WILDCARD_DOMAIN_NAME        = "${var.wildcard_domain_name}"
-      SUBDOMAINS                  = "${join(",", formatlist("\"%s.%s\"", var.attendees, var.wildcard_domain_name))}" 
+      SUBDOMAINS                  = "${join(",", formatlist("\"%s.%s\"", var.attendees, var.wildcard_domain_name))}"
       ACME_EMAIL                  = "${var.acme_email}"
       COMMENT_OUT_STAGING_SERVER  = "${var.use_production_acme_server ? "#" : "" }"
   }

@@ -239,13 +239,18 @@ variable "attendees" {
   default     = ["stevenrbrandt","ktraxler","jfonner","dooley"]
 }
 
+variable "attendee_password" {
+  description = "The default password for the attendees to use when logging into their jupyter hub installs."
+  default     = "changeit"
+}
+
 variable "wildcard_domain_name" {
   description = "The wildcard subdomain created for this training event"
   default     = "sc17.training.agaveplatform.org"
 }
 
 /***********************************************************
- * Automated SSL generation with Let's Encrypt
+ * Automated SSL generation with Lets Encrypt
  ***********************************************************/
 
 variable "acme_email" {

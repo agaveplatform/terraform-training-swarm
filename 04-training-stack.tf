@@ -51,7 +51,7 @@ resource "null_resource" "training_sanbox_launch" {
   provisioner "remote-exec" {
     inline = [
       "docker volume create ${var.attendees[count.index]}-training-volume",
-      #"docker run -it ${var.attendees[count.index]}-training-volume",
+      "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml pull",
       "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml up -d ",
     ]
     connection {
@@ -84,13 +84,14 @@ data "template_file" "training_jupyter_stack_template" {
 
   vars {
       TRAINING_VM_HOSTNAME        = "${var.attendees[count.index]}.${var.training_event}.training.agaveplatform.org"
-      TRAINING_USERNAME           = "${var.attendees[count.index]}"
       TRAINING_EVENT              = "${var.training_event}"
       TRAINING_VM_MACHINE         = "${element(openstack_compute_instance_v2.training_node.*.name, count.index)}"
       TRAINING_VM_ADDRESS         = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       SWARM_OVERLAY_NETWORK_NAME  = "${var.swarm_overlay_network_name}"
       TRAINING_SANBOX_IMAGE       = "${var.sandbox_image}"
       TRAINING_JUPYTER_IMAGE      = "${var.jupyter_image}"
+      TRAINING_USERNAME           = "${var.attendees[count.index]}"
+      TRAINING_USER_PASS          = "${var.attendee_password}"
   }
 }
 
@@ -101,6 +102,19 @@ data "template_file" "training_jupyter_stack_template" {
 resource "null_resource" "training_deploy_jupyter_stack" {
   depends_on = ["null_resource.training_sanbox_launch"]
   count = "${length(var.attendees)}"
+
+  # copies INSTALL.ipynb to the training node for binding into jupyter
+  # service the container
+  provisioner "file" {
+    source       = "templates/training/INSTALL.ipynb"
+    destination   = "/home/agaveops/INSTALL.ipynb"
+    connection {
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "300s"
+    }
+  }
 
   # copies compose file with network stack to the swarm master
   provisioner "file" {

@@ -25,19 +25,19 @@ resource "openstack_compute_floatingip_associate_v2" "training_node" {
   floating_ip = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
   instance_id = "${element(openstack_compute_instance_v2.training_node.*.id, count.index)}"
 
-  # # Remove this host from the swarm before deleting the node
-  # provisioner "remote-exec" {
-  #   when = "destroy"
-  #   inline = [
-  #     "docker swarm leave || true",
-  #   ]
-  #   connection {
-  #     host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
-  #     user = "agaveops"
-  #     private_key = "${file(var.openstack_keypair_private_key_path)}"
-  #     timeout = "90s"
-  #   }
-  # }
+  # Remove this host from the swarm before deleting the node
+  provisioner "remote-exec" {
+    when = "destroy"
+    inline = [
+      "docker swarm leave || true",
+    ]
+    connection {
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "90s"
+    }
+  }
 }
 
 resource "null_resource" "training_node_auth_config" {
