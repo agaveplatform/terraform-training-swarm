@@ -9,6 +9,11 @@ provider "openstack" {
   domain_name   = "${var.openstack_tenant_name}"
 }
 
+
+module "openstack_keys" {
+  source = "modules/training_account/tfkeygen"
+}
+
 # Add a new keypair to the cluster using the provided keys. These should
 # be the keys you wish to use for operations. They need not be the same ones
 # you have registered with openstack previously. They will be deleted from
@@ -100,8 +105,8 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   # SSH to sandbox containers
   rule {
     ip_protocol = "tcp"
-    from_port   = 10022
-    to_port     = 10022
+    from_port   = ${var.sandbox_ssh_port}
+    to_port     = ${var.sandbox_ssh_port}
     cidr        = "0.0.0.0/0"
   }
 

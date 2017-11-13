@@ -14,6 +14,7 @@ data "template_file" "training_sandbox_docker_compose_file" {
 
   vars {
       TRAINING_VM_HOSTNAME        = "${var.attendees[count.index]}-sandbox.${var.wildcard_domain_name}"
+      TRAINING_SANDBOX_PORT       = "${var.sandbox_ssh_port}"
       TRAINING_USERNAME           = "${var.attendees[count.index]}"
       TRAINING_EVENT              = "${var.training_event}"
       TRAINING_VM_MACHINE         = "${element(openstack_compute_instance_v2.training_node.*.name, count.index)}"
@@ -24,6 +25,28 @@ data "template_file" "training_sandbox_docker_compose_file" {
   }
 }
 
+# The training sandbox is started as a Docker Compose service on each host
+# due to the need for the privileged flag to bind-mount the docker socket
+# to enabled container builds. The compose file joins the swarm overlay
+# network so the sandbox container port is properly published and addressable
+# via public dns externally and via the container service name from within
+# each user's jupyter service container
+# The user's data is mounted into a persistent volume on the training node
+# and the data volume is bind-mounted into each container on a per-user basis.
+# A NFS volume driver will be used in the future to persist the user's data
+# in spite of node failure.
+data "template_file" "training_sandbox_ssh_config_file" {
+  template = "${file("templates/training/ssh_config.tpl")}"
+  count    = "${length(var.attendees)}"
+
+  vars {
+      TRAINING_JENKINS_HOST  = "${var.attendees[count.index]}.${var.wildcard_domain_name}"
+      TRAINING_SANDBOX_HOST  = "${var.attendees[count.index]}.${var.wildcard_domain_name}"
+      TRAINING_SANDBOX_PORT  = "${var.sandbox_ssh_port}"
+  }
+}
+
+
 # Copies training sandbox docker compose file to the training_node host and
 # runs it to create the training sandbox for each attendee. Each sandbox
 # is explicitly configured for the user. A local volume is created on the
@@ -33,6 +56,49 @@ data "template_file" "training_sandbox_docker_compose_file" {
 resource "null_resource" "training_sanbox_launch" {
   depends_on = ["null_resource.training_node_join_cluster"]
   count = "${length(var.attendees)}"
+
+  # Remote to the training node and register the service. The compose file will ensure that
+  # it is bound to run on this training node by mapping the node name into the constraints.
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir -p /home/agaveops/${var.attendees[count.index]}/ssh"
+      "mkdir -p /home/agaveops/${var.attendees[count.index]}/sandbox"
+      "mkdir -p /home/agaveops/${var.attendees[count.index]}/jupyter"
+      "mkdir -p /home/agaveops/${var.attendees[count.index]}/jenkins"
+      "mkdir -p /home/agaveops/${var.attendees[count.index]}/registry"
+    ]
+    connection {
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "90s"
+    }
+  }
+
+  # copies compose file with network stack to the swarm master
+  provisioner "file" {
+    content       = "${element(data.template_file.training_sandbox_docker_compose_file.*.rendered, count.index)}"
+    destination   = "/home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml"
+    connection {
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "90s"
+    }
+  }
+
+  # copies compose file with network stack to the swarm master
+  provisioner "file" {
+    content       = "${element(data.template_file.training_sandbox_docker_compose_file.*.rendered, count.index)}"
+    destination   = "/home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml"
+    connection {
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "90s"
+    }
+  }
+  ${TRAINING_USERNAME}/sandbox/ssh
 
   # copies compose file with network stack to the swarm master
   provisioner "file" {

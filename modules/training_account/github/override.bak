@@ -1,0 +1,34 @@
+variable "username" {
+  description = "The username for whom the repository will be created."
+  default = "training003"
+}
+
+variable "github_token" {
+  description = "The oauth token to connect with our github organization to create training repositories."
+  default = "v1.3f5889ec0cb8d382ee88b52769af443300a1e6e6"
+}
+
+variable "github_organization" {
+  description = "The github organization in which the training repositories will be created."
+  default = "agavetraining"
+}
+
+variable "repository_base_name" {
+  description = "The base name of the repository. This will be prefixed with the training username to create the user's repository name."
+  default     = "funwave-tvd"
+}
+
+variable "deployment_key" {
+  description = "The default password for the attendees to use when logging into their jupyter hub installs."
+  default     = "hpc connects"
+}
+
+variable "wildcard_domain_name" {
+  description = "The user subdomain created for the user. This will be used to generate the webhook callback from github"
+  default     = "sc17.training.agaveplatform.org"
+}
+
+variable "deployment_key" {
+  description = "The deployment key to be added to the repository to enable users to push code to their repo by default."
+  default     = ""
+}

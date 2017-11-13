@@ -37,7 +37,7 @@ resource "null_resource" "swarm_slave_configure_auth" {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_slave.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "60m"
     }
   }
 

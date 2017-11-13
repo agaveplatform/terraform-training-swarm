@@ -155,6 +155,11 @@ variable "sandbox_image" {
   default  = "agaveplatform/sc17-sandbox:latest"
 }
 
+variable "sandbox_ssh_port" {
+  description = "The port on which the sandbox should be made available. This will be used to customize the openstack security groups as well as container port mapping."
+  default  = 10022
+}
+
 variable "jupyter_image" {
   description = "The fully qualified jupyter image to use."
   default  = "agaveplatform/jupyter-notebook:latest"
@@ -261,4 +266,17 @@ variable "acme_email" {
 variable "use_production_acme_server" {
   description = "The wildcard subdomain created for this training event"
   default     = false
+}
+
+/***********************************************************
+ * Github organization info
+ ***********************************************************/
+
+variable "github_token" {
+  description = "The oauth token to connect with our github organization to create training repositories."
+}
+
+variable "github_organization" {
+  description = "The github organization in which the training repositories will be created."
+  default = "agavetraining"
 }

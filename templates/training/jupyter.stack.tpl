@@ -11,9 +11,15 @@ volumes:
     external:
       name: ${TRAINING_USERNAME}-training-volume
 
-#secrets:
-#  training/${TRAINING_USERNAME}/hash:
-#    external: true
+secrets:
+  deployment_private_key
+    file: /home/agaveops/${TRAINING_USERNAME}/sandbox/ssh/github.pem
+  deployment_public_key
+    file: /home/agaveops/${TRAINING_USERNAME}/sandbox/ssh/github.pub
+  sandbox_private_key
+    file: /home/agaveops/${TRAINING_USERNAME}/sandbox/ssh/sanbox.pem
+  sandbox_public_key
+    file: /home/agaveops/${TRAINING_USERNAME}/sandbox/ssh/sandbox.pub
 
 services:
   ${TRAINING_USERNAME}:
@@ -30,7 +36,7 @@ services:
       - MACHINE_USERNAME=jovyan
       - MACHINE_IP=${TRAINING_VM_ADDRESS}
       - MACHINE_NAME=${TRAINING_USERNAME}
-      - MACHINE_PORT=10022
+      - MACHINE_PORT=${TRAINING_SANDBOX_PORT}
       - DOCKERHUB_NAME=stevenrbrandt
       - AGAVE_APP_DEPLOYMENT_PATH=agave-deployment
       - AGAVE_CACHE_DIR=/home/jovyan/work/.agave
@@ -41,7 +47,7 @@ services:
       - AGAVE_USERNAME=${TRAINING_USERNAME}
       - AGAVE_PASSWORD=${TRAINING_USER_PASS}
       - AGAVE_SYSTEM_HOST=${TRAINING_VM_ADDRESS}
-      - AGAVE_SYSTEM_PORT=10022
+      - AGAVE_SYSTEM_PORT=${TRAINING_VM_PORT}
       - AGAVE_SYSTEM_SITE_DOMAIN=jetstream-cloud.org
       - AGAVE_STORAGE_WORK_DIR=/home/jovyan
       - AGAVE_STORAGE_HOME_DIR=/home/jovyan
@@ -51,6 +57,17 @@ services:
     volumes:
       - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
       - /home/agaveops/INSTALL.ipynb:/home/jovyan/INSTALL.ipynb
+      - /home/agaveops/${TRAINING_USERNAME}/sandbox/ssh/config:/home/jovyan/.ssh/config:ro
+      - /home/agaveops/${TRAINING_USERNAME}/sandbox/ssh/authorized_keys:/home/jovyan/.ssh/authorized_keys:ro
+    secrets:
+      - source: deployment_private_key
+        mode: 0400
+      - source: deployment_public_key
+        mode: 0444
+      - source: sandbox_private_key
+        mode: 0400
+      - source: sandbox_public_key
+        mode: 0444
     networks:
       - swarm_overlay
       - ${TRAINING_USERNAME}-training

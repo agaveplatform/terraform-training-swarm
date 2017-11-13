@@ -33,7 +33,7 @@ resource "null_resource" "swarm_manager_configure_auth" {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "60m"
     }
   }
 

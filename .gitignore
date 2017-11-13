@@ -28,4 +28,4 @@ ansible/group_vars/attendee-student2
 ansible/group_vars/attendee-student3
 ansible/group_vars
 modules/agave
-training
+cloudinit

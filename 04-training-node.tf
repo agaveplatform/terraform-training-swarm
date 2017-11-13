@@ -40,8 +40,24 @@ resource "openstack_compute_floatingip_associate_v2" "training_node" {
   }
 }
 
-resource "null_resource" "training_node_auth_config" {
+# generate ssh keys an github accounts for each user
+module "training_account" {
   depends_on = ["null_resource.swarm_manager_init_swarm"]
+  count = "${length(var.attendees)}"
+
+  source = "modules/training_account"
+
+  username = "${var.username}"
+  wildcard_domain_name = "${var.wildcard_domain_name}"
+  repository_basename = "${var.repository_basename}"
+  github_organization = "${var.github_organization}"
+  github_token = "${var.github_token}"
+  deployment_public_key = "${module.deployment_keys.public_key}"
+}
+
+
+resource "null_resource" "training_node_auth_config" {
+  depends_on = ["module.training_account"]
   count = "${length(var.attendees)}"
 
   # copies ssh private key to the swarm master. This key should match
@@ -53,7 +69,7 @@ resource "null_resource" "training_node_auth_config" {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "60m"
     }
   }
 
