@@ -10,8 +10,23 @@ volumes:
   ${TRAINING_USERNAME}-training-volume:
     external:
       name: ${TRAINING_USERNAME}-training-volume
+  ${TRAINING_USERNAME}-ssh-keygen-volume:
+    external:
+      name: ${TRAINING_USERNAME}-ssh-keygen-volume
 
 services:
+
+  # This is a single shot container that creates a set of ssh keys per instance
+  # and deploys them to a persistent volume shared between the sandbox and
+  # jupyter container. By doing this, we don't need to ship keys with the image
+  # or source.
+  ssh-keygen:
+    image: agaveplatform/jupyter-notebook:5.2
+    entrypoint: /bin/bash
+    command: /usr/local/bin/keygen.sh
+    user: jovyan
+    volumes:
+      - ${TRAINING_USERNAME}-ssh-keygen-volume:/home/jovyan/.ssh
 
   ${TRAINING_USERNAME}-sandbox:
     image: ${TRAINING_SANBOX_IMAGE}
@@ -30,6 +45,7 @@ services:
       - AGAVE_CACHE_DIR=/home/jovyan/work/.agave
     volumes:
       - ${TRAINING_USERNAME}-training-volume:/home/jovyan/work
+      - ${TRAINING_USERNAME}-ssh-keygen-volume:/home/jovyan/.ssh
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - ${TRAINING_USERNAME}-training

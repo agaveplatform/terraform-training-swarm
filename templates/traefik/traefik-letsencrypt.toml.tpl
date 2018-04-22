@@ -68,8 +68,10 @@ storage = "/ssl/acme.json"
 ${COMMENT_OUT_STAGING_SERVER}caServer = "https://acme-staging.api.letsencrypt.org/directory"
 acmeLogging = true
 entryPoint = "https"
+[acme.httpChallenge]
+  entryPoint = "http"
 email = "${ACME_EMAIL}"
 
 [[acme.domains]]
-main = "${WILDCARD_DOMAIN_NAME}"
-sans = [${SUBDOMAINS}]
+main = "*.${WILDCARD_DOMAIN_NAME}"
+#sans = [${SUBDOMAINS}]

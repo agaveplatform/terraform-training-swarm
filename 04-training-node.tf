@@ -7,7 +7,7 @@ resource "openstack_compute_instance_v2" "training_node" {
 
   image_id        = "${var.openstack_images["ubuntu1604"]}"
 
-  flavor_id       = "${var.openstack_flavor["m1_medium"]}"
+  flavor_id       = "${var.openstack_flavor["m1_small"]}"
   key_pair        = "${openstack_compute_keypair_v2.keypair.name}"
   security_groups = ["${openstack_compute_secgroup_v2.swarm_tf_secgroup_1.name}"]
 
@@ -26,22 +26,22 @@ resource "openstack_compute_floatingip_associate_v2" "training_node" {
   instance_id = "${element(openstack_compute_instance_v2.training_node.*.id, count.index)}"
 
   # Remove this host from the swarm before deleting the node
-  provisioner "remote-exec" {
-    when = "destroy"
-    inline = [
-      "docker swarm leave || true",
-    ]
-    connection {
-      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
-      user = "agaveops"
-      private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
-    }
-  }
+  # provisioner "remote-exec" {
+  #   when = "destroy"
+  #   inline = [
+  #     "docker swarm leave || true",
+  #   ]
+  #   connection {
+  #     host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+  #     user = "agaveops"
+  #     private_key = "${file(var.openstack_keypair_private_key_path)}"
+  #     timeout = "90s"
+  #   }
+  # }
 }
 
 resource "null_resource" "training_node_auth_config" {
-  depends_on = ["null_resource.swarm_manager_init_swarm"]
+  depends_on = ["null_resource.swarm_manager_init_swarm", "openstack_compute_floatingip_associate_v2.training_node" ]
   count = "${length(var.attendees)}"
 
   # copies ssh private key to the swarm master. This key should match
@@ -53,7 +53,7 @@ resource "null_resource" "training_node_auth_config" {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "300s"
     }
   }
 
@@ -66,7 +66,7 @@ resource "null_resource" "training_node_auth_config" {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "300s"
     }
   }
 
@@ -83,7 +83,7 @@ resource "null_resource" "training_node_auth_config" {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "300s"
     }
   }
 }
@@ -104,7 +104,7 @@ resource "null_resource" "training_node_join_cluster" {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "300s"
     }
   }
 
@@ -118,7 +118,7 @@ resource "null_resource" "training_node_join_cluster" {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "300s"
     }
   }
 
@@ -149,7 +149,7 @@ resource "null_resource" "training_node_join_cluster" {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "300s"
     }
   }
 
@@ -163,7 +163,7 @@ resource "null_resource" "training_node_join_cluster" {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "300s"
     }
   }
 }

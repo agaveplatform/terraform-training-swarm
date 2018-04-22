@@ -18,7 +18,7 @@ resource "openstack_compute_instance_v2" "swarm_manager" {
 resource "openstack_compute_floatingip_associate_v2" "swarm_manager" {
   # uncomment to assign a new floating ip with each deployment
   #floating_ip = "${openstack_networking_floatingip_v2.swarm_tf_floatip_manager.address}"
-  floating_ip = "149.165.157.242"
+  floating_ip = "149.165.157.182"
   instance_id = "${openstack_compute_instance_v2.swarm_manager.id}"
 }
 
@@ -33,7 +33,7 @@ resource "null_resource" "swarm_manager_configure_auth" {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "600s"
     }
   }
 
@@ -84,7 +84,7 @@ resource "null_resource" "swarm_manager_init_swarm" {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
-      timeout = "90s"
+      timeout = "600s"
     }
   }
 }

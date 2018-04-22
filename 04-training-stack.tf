@@ -51,14 +51,43 @@ resource "null_resource" "training_sanbox_launch" {
   provisioner "remote-exec" {
     inline = [
       "docker volume create ${var.attendees[count.index]}-training-volume",
-      "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml pull",
-      "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml up -d ",
+      "docker volume create ${var.attendees[count.index]}-ssh-keygen-volume"
     ]
     connection {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
       user = "agaveops"
       private_key = "${file(var.openstack_keypair_private_key_path)}"
       timeout = "90s"
+    }
+  }
+
+  # Remote to the training node and register the service. The compose file will ensure that
+  # it is bound to run on this training node by mapping the node name into the constraints.
+  provisioner "remote-exec" {
+    on_failure = "continue"
+    inline = [
+      "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml pull",
+    ]
+    connection {
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "300s"
+    }
+  }
+
+  # Remote to the training node and start the sandbox. The compose file will ensure that
+  # it is bound to run on this training node by mapping the node name into the constraints.
+  provisioner "remote-exec" {
+    inline = [
+      "sleep 30",
+      "docker-compose -f /home/agaveops/sandbox.compose.${var.attendees[count.index]}.yml up -d ",
+    ]
+    connection {
+      host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"
+      user = "agaveops"
+      private_key = "${file(var.openstack_keypair_private_key_path)}"
+      timeout = "300s"
     }
   }
 }
@@ -92,6 +121,19 @@ data "template_file" "training_jupyter_stack_template" {
       TRAINING_JUPYTER_IMAGE      = "${var.jupyter_image}"
       TRAINING_USERNAME           = "${var.attendees[count.index]}"
       TRAINING_USER_PASS          = "${var.attendee_password}"
+      AGAVE_TENANTS_API_BASEURL   = "${var.agave_tenants_api_baseurl}"
+      AGAVE_TENANT                = "${var.agave_tenant}"
+  }
+}
+
+##
+# Filter the INSTALL.ipyn.tpl file to inject the
+#
+data "template_file" "training_jupyter_notebook_install_template" {
+  template = "${file("templates/training/INSTALL.ipynb.tpl")}"
+
+  vars {
+      TRAINING_EVENT_GIT_URL            = "${var.training_event_git_url}"
   }
 }
 
@@ -103,10 +145,10 @@ resource "null_resource" "training_deploy_jupyter_stack" {
   depends_on = ["null_resource.training_sanbox_launch"]
   count = "${length(var.attendees)}"
 
-  # copies INSTALL.ipynb to the training node for binding into jupyter
+  # copies INSTALL.ipynb.tpl to the training node for binding into jupyter
   # service the container
   provisioner "file" {
-    source       = "templates/training/INSTALL.ipynb"
+    content       = "${data.template_file.training_jupyter_notebook_install_template.rendered}"
     destination   = "/home/agaveops/INSTALL.ipynb"
     connection {
       host = "${element(openstack_networking_floatingip_v2.swarm_tf_floatip_training.*.address, count.index)}"

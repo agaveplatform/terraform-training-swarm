@@ -152,12 +152,12 @@ variable "swarm_environment" {
 
 variable "sandbox_image" {
   description = "The fully qualified sandbox image to use."
-  default  = "agaveplatform/sc17-sandbox:latest"
+  default  = "agaveplatform/training-sandbox:latest"
 }
 
 variable "jupyter_image" {
   description = "The fully qualified jupyter image to use."
-  default  = "agaveplatform/jupyter-notebook:latest"
+  default  = "agaveplatform/jupyter-notebook:5.2"
 }
 
 variable "portainer_image" {
@@ -234,6 +234,11 @@ variable "training_event" {
   default = "sc17"
 }
 
+variable "training_event_git_url" {
+  description = "The url of the git repository where the training materials can be found."
+  default     = "https://github.com/uh-ci/agave_workshop_20180419"
+}
+
 variable "attendees" {
   description = "A list of the training attendees. One Swarm slave VM will be started for each attendee in addition to the base swarm footprint. Attendee sandboxes will be provisioned on the VM with their username. Valid client keys and auth/refresh tokens will be generated and injected into their environment."
   default     = ["stevenrbrandt","ktraxler","jfonner","dooley"]
@@ -262,3 +267,22 @@ variable "use_production_acme_server" {
   description = "The wildcard subdomain created for this training event"
   default     = false
 }
+
+
+/***********************************************************
+ * Agave Platform Tenant Configuration
+ ***********************************************************/
+
+variable "agave_tenant" {
+  description = "The code of the tenant to use during the tutorial. The tenant should be resolvable from the url given buy the agave_tenants_api_baseurl variable."
+  default     = "agave.prod"
+}
+
+variable "agave_tenants_api_baseurl" {
+  description = "The discovery url of the tenants api to use when bootstrapping the client configs, etc."
+  default     = "https://agaveapi.co/tenants"
+}
+
+
+
+

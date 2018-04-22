@@ -132,8 +132,8 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
   # Jupyter HTTP traffic
   rule {
     ip_protocol = "tcp"
-    from_port   = 8005
-    to_port     = 8005
+    from_port   = 8888
+    to_port     = 8888
     cidr        = "0.0.0.0/0"
   }
 
@@ -314,9 +314,9 @@ resource "openstack_networking_router_interface_v2" "swarm_tf_router_interface_1
 }
 
 # Create a floating ip address for the swarm leader
-resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_manager" {
-  pool = "public"
-}
+#resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_manager" {
+#  pool = "public"
+#}
 
 # Create a floating ip address for the swarm manager nodes
 resource "openstack_networking_floatingip_v2" "swarm_tf_floatip_managerx" {
