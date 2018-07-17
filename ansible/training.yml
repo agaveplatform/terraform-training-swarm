@@ -5,5 +5,9 @@
 # files for each attendee.
 - hosts: training-nodes
   roles:
-    - jupyter
+    - pull_images
+    - ssh_keygen
     - sandbox
+    - jupyter
+    - jenkins
+

@@ -51,6 +51,7 @@ address = ":28443"
 certFile = "/ssl/${WILDCARD_DOMAIN_NAME}.crt"
 keyFile = "/ssl/${WILDCARD_DOMAIN_NAME}.key"
 readOnly = true
+
 [web.metrics.prometheus]
 
 # Service listener

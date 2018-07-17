@@ -108,7 +108,7 @@ resource "null_resource" "training_sanbox_launch" {
 # A NFS volume driver will be used in the future to persist the user's data
 # in spite of node failure.
 data "template_file" "training_jupyter_stack_template" {
-  template = "${file("templates/training/jupyter.stack.tpl")}"
+  template = "${file("templates/training/rstudio.stack.tpl")}"
   count    = "${length(var.attendees)}"
 
   vars {
