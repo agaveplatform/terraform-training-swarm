@@ -18,7 +18,7 @@ resource "openstack_compute_instance_v2" "swarm_manager" {
 resource "openstack_compute_floatingip_associate_v2" "swarm_manager" {
   # uncomment to assign a new floating ip with each deployment
   #floating_ip = "${openstack_networking_floatingip_v2.swarm_tf_floatip_manager.address}"
-  floating_ip = "149.165.157.182"
+  floating_ip = "149.165.156.120"
   instance_id = "${openstack_compute_instance_v2.swarm_manager.id}"
 }
 
