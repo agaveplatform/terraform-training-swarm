@@ -28,7 +28,7 @@ ansible/group_vars/attendee-student2
 ansible/group_vars/attendee-student3
 ansible/group_vars
 modules/agave
-training
+/templates/training/rstudio.tpl
 templates/traefik/ssl/hawaii.training.agaveplatform.org.crt
 templates/traefik/ssl/hawaii.training.agaveplatform.org.key
 templates/traefik/ssl/pearc.training.agaveplatform.org.crt
