@@ -137,6 +137,14 @@ resource "openstack_compute_secgroup_v2" "swarm_tf_secgroup_1" {
     cidr        = "0.0.0.0/0"
   }
 
+  # Jenkins HTTP traffic
+  rule {
+    ip_protocol = "tcp"
+    from_port   = 8080
+    to_port     = 8080
+    cidr        = "0.0.0.0/0"
+  }
+
   ###########################
   # Private network ports
   ###########################
