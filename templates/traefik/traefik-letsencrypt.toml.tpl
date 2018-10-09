@@ -72,6 +72,9 @@ entryPoint = "https"
   entryPoint = "http"
 email = "${ACME_EMAIL}"
 
+#[[acme.domains]]
+#main = "*.${WILDCARD_DOMAIN_NAME}"
+##sans = [${SUBDOMAINS}]
 [[acme.domains]]
-main = "*.${WILDCARD_DOMAIN_NAME}"
-#sans = [${SUBDOMAINS}]
+main = "${WILDCARD_DOMAIN_NAME}"
+sans = [${SUBDOMAINS}]
