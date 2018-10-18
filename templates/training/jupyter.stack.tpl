@@ -82,7 +82,7 @@ services:
         - "traefik.protocol=http"
         - "traefik.tags=${TRAINING_USERNAME}"
         - "traefik.backend=${TRAINING_USERNAME}-training"
-        - "traefik.frontend.rule=Host:${TRAINING_VM_HOSTNAME}"
+        - "traefik.frontend.rule=Host:${TRAINING_VM_HOSTNAME};PathPrefix:/"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
       replicas: 1
       resources:
@@ -125,6 +125,9 @@ services:
       - AGAVE_PASSWORD=${TRAINING_USER_PASS}
     volumes:
       - ${TRAINING_USERNAME}-ssh-keygen-volume:/var/jenkins_home/.ssh
+    networks:
+      - swarm_overlay
+      - ${TRAINING_USERNAME}-training
     deploy:
       placement:
         constraints:
@@ -137,9 +140,9 @@ services:
         - "environment=training"
         - "traefik.port=8080"
         - "traefik.protocol=http"
-        - "traefik.tags=${TRAINING_USERNAME}"
+        - "traefik.tags=${TRAINING_USERNAME},jenkins"
         - "traefik.backend=${TRAINING_USERNAME}-jenkins"
-        - "traefik.frontend.rule=Host:${TRAINING_VM_HOSTNAME};PathPrefix=/jenkins"
+        - "traefik.frontend.rule=Host:${TRAINING_VM_HOSTNAME};PathPrefix:/jenkins"
         - "traefik.docker.network=${SWARM_OVERLAY_NETWORK_NAME}"
         - "traefik.frontend.passHostHeader=true"
       replicas: 1
