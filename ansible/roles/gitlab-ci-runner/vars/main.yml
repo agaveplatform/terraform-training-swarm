@@ -1,0 +1,7 @@
+---
+# Location of the gitlab runner configs persisted to disk.
+gitlab_runner_config_dir: "{{ gitlab_runner_deploy_dir }}/config"
+
+# Location of self-signed certs for the gitlab server to enable
+# TLS communication
+gitlab_runner_cert_dir: "{{ gitlab_runner_deploy_dir }}/ssl"

@@ -1,0 +1,37 @@
+# All the variables should be changed to be appropriate
+
+# The Docker image of the Gitlab Runner
+gitlab_runner_image: gitlab/gitlab-runner:v11.2.0
+# The gitlab username under which the executor should run
+gitlab_runner_user: 'root' # root or specific user
+
+# base directory to deploy gitlab runner data and configs
+gitlab_runner_deploy_dir: "/home/{{ devops_linux_user }}/gitlab-runner"
+
+# Log directory for all stack logs
+gitlab_runner_log_dir: "/var/log/gitlab-runner"
+
+# The url of the gitlab server where the runner will register at startup
+gitlab_url: "https://{{ gitlab_host }}" # 'http://gitlab.dsra.com'
+
+# The url of the gitlab server where the runner will register at startup
+gitlab_registry_url: "https://{{ gitlab_registry_host }}" # 'http://gitlab.dsra.com'
+
+# The registration token for the runner. This should already be present if the gitlab server
+# was initialized with the corresponding ansible role. If not, it's available at <gitlab_url>/admin/runners
+gitlab_runner_token: 'ChangeMe'
+
+# The description of the runner that will show up in the gitlab server for admins to see
+gitlab_runner_description: 'medifor analytics docker runner'
+
+# Which executor to use in this runner instance
+gitlab_runner_executor: 'docker' # shell, ssh, docker+machine, docker-ssh+machine, kubernetes, docker, docker-ssh, parallels, virtualbox
+
+# The Docker image the executor will start
+gitlab_runner_executor_image: 'docker:latest'
+
+# Any tags that should be applied to this runner
+gitlab_runner_tags:
+    - docker
+    - medifor
+    - analytics

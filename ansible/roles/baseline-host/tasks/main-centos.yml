@@ -1,0 +1,43 @@
+---
+
+- name: Add epel repo
+  yum_repository:
+    name: epel
+    description: EPEL YUM repo
+    baseurl: https://download.fedoraproject.org/pub/epel/$releasever/$basearch/
+    gpgcheck: no
+  notify: yum-clean-metadata
+
+- name: Install common packages
+  yum:
+    name: '{{ item }}'
+    state: present
+    update_cache: yes
+    disable_gpg_check: yes
+  with_items:
+    - libselinux-python
+    - git
+    - cronie
+    - net-tools
+    - bind-utils
+    - iftop
+    - bash-completion
+    - psacct
+    - yum-plugin-ovl
+    - wget
+    - gcc
+    - openssl-devel
+    - glibc
+    - python
+    - python-devel
+    - python-pip
+    - MySQL-python
+
+- name: Ensure services enabled
+  service:
+    name: '{{ item }}'
+    state: started
+    enabled: yes
+  with_items:
+      - psacct
+      - ntp

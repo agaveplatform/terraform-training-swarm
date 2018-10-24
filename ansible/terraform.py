@@ -198,6 +198,8 @@ def openstack_host(resource, module_name):
     # attrs specific to Mantl
     attrs.update({
         'ansible_python_interpreter': attrs['metadata'].get('python_bin','python')
+        'swarm_labels': attrs['metadata'].get('swarm_labels', "").split(",")
+        'training_user': attrs['metadata'].get('training_user', "")
     })
 
     # add groups based on attrs
@@ -208,7 +210,7 @@ def openstack_host(resource, module_name):
     groups.append('os_region=' + attrs['region'])
 
     # groups specific to kubespray
-    for group in attrs['metadata'].get('training_groups', "").split(","):
+    for group in attrs['metadata'].get('extra_groups', "").split(","):
         groups.append(group)
 
     return name, attrs, groups

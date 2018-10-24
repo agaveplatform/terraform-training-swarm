@@ -8,7 +8,7 @@
 # Example invocation:
 # ansible-playbook -i inventory playbooks/gitlab-playbooks/rotate-personal-access-token.plbk -e user_username=jdoe
 
-- hosts: gitlab
+- hosts: leader_node
   become: yes
   become_user: "{{ devops_linux_user }}"
   gather_facts: no

@@ -1,0 +1,122 @@
+# This role applies to any Agave server. Creates base accounts, sets up ssh keys, etc.
+# Should be run whenver running a deployment or adding a new host.
+---
+
+- name: Detect /etc/sudoers
+  stat: path=/etc/sudoers
+  register: etc_sudoers
+
+- name: Disable sudo requiretty for Ansible pipelining
+  lineinfile: dest=/etc/sudoers regexp="^Defaults(\s+)(.*)requiretty(.*)" line="#Defaults\1\2requiretty\3" backrefs=yes
+  become: yes
+  when: etc_sudoers.stat.exists
+  ignore_errors: True
+
+- name: "Remove {{ devops_linux_user }} dir"
+  shell: rm -rf "/home/{{ devops_linux_user }}"
+  become: yes
+  when: clean_host
+  ignore_errors: True
+
+- name: "Remove ansible temp dir"
+  shell: rm -rf /root/.ansible/tmp
+  become: yes
+  when: clean_host
+  ignore_errors: True
+
+- name: Remove containers
+  shell: "docker ps -aq | xargs --no-run-if-empty docker rm -f"
+  become: yes
+  when: clean_host
+  ignore_errors: True
+
+- name: Add agave services user
+  user: 
+    name: "{{ devops_linux_user }}"
+    generate_ssh_key: yes 
+    state: present
+  become: yes
+
+- name: Add vagrant user to sudoers with no password
+  lineinfile:
+    dest: /etc/sudoers.d/99-vagrant-user
+    line: 'vagrant ALL=(ALL) NOPASSWD:ALL'
+    state: present
+    create: yes
+  become: yes
+  when: ansible_ssh_user == "vagrant"
+
+- name: "Add user {{ devops_linux_user }} to sudoers with no password"
+  lineinfile:
+    dest: /etc/sudoers.d/99-{{ devops_linux_user }}-user
+    line: '{{ devops_linux_user }} ALL=(ALL) NOPASSWD:ALL'
+    state: present
+    create: yes
+  become: yes
+
+- name: "Add user {{ devops_linux_user }}'s key to authorized keys"
+  shell: cat id_rsa.pub > authorized_keys
+  args:
+    chdir: "/home/{{ devops_linux_user }}/.ssh"
+    creates: "/home/{{ devops_linux_user }}/.ssh/authorized_keys"
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+- name: "Ensure permissions on {{ devops_linux_user }} sudoers"
+  file: path=/etc/sudoers.d/99-{{ devops_linux_user }}-user mode=0440 owner=root
+  become: yes
+
+- name: "Remove lines expanding aliases on remote commands from .bashrc"
+  lineinfile: dest=/home/{{ devops_linux_user }}/.bashrc
+              line="^shopt -s expand_aliases"
+              state=absent
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+- name: Add shopt -s expand_aliases to .bashrc file to expand aliases on remote commands
+  lineinfile: dest=/home/{{ devops_linux_user }}/.bashrc
+              line="shopt -s expand_aliases"
+              state=present
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+- name: Create .bashrc.d directory to hold custom scripts to source on login
+  file:
+    path: /home/{{ devops_linux_user }}/.bashrc.d
+    state: directory
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+- name: Remove sourcing of .bashrc.d folder contents from .bashrc file
+  lineinfile: dest=/home/{{ devops_linux_user }}/.bashrc
+              regexp="^if \[\[ -e \$HOME/\.bashrc\.d \]\]"
+              state=absent
+  become: yes
+
+- name: Add sourcing of .bashrc.d folder contents at login to .bashrc file
+  lineinfile: dest=/home/{{ devops_linux_user }}/.bashrc
+              line="if [[ -e $HOME/.bashrc.d ]] && [[ -d $HOME/.bashrc.d ]]; then for i in $(ls $HOME/.bashrc.d); do source $HOME/.bashrc.d/$i ; done fi"
+              state=present
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+- name: Disabling known http proxy config file settings on host
+  include_tasks: disable_http_proxies.yml
+  when: disable_http_proxies
+
+- name: "Install jq binary"
+  get_url:
+    url: https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
+    dest: /usr/local/bin/jq
+    mode: 0755
+  become: yes
+
+# Debian package installs
+- name: "Add common Debian software packages"
+  include_tasks: main-ubuntu.yml
+  when: ansible_os_family == "Debian"
+
+# RHEL package installs
+- name: "Add common RHEL software packages"
+  include_tasks: main-centos.yml
+  when: ansible_os_family == "RedHat"

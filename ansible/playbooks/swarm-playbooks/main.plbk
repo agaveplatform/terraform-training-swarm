@@ -1,25 +1,31 @@
 ---
-# main.yml
-# Run this playbook to install and configure something. 
+# main.plbk
+# Run this playbook to install and configure Docker Swarm across all hosts.
 #
 # Assumptions:
 # This playbook assumes the host has already been configured using the
 # `../host-playbooks/docker-host.plbk` playbook.
 #
-# Varables:
-# `clean_host`: If true, the host will be shot with a clean base configuration 
-#
 # Example invocation:
-# ansible-playbook -i inventory playbooks/main.yml
+# ansible-playbook -i inventory playbooks/swarm-playbooks/main.yml
 #
 
-- name: Gather facts
-  host: all
-  
+- name: "Provision Docker Swarm Cluster"
+  hosts: all
+  become: yes
+
+  roles:
+    - role: atosatto.docker-swarm
+      vars:
+        skip_engine: True
+        skip_group: True
+        skip_docker_py: True
+
+- name: "Setup default network and labels"
+  hosts: leader_node
+  become: yes
+
   tasks:
-    - name: gather facts from db servers
-      setup:
-      delegate_to: "{{item}}"
-      delegate_facts: True
-      loop: "{{groups['dbservers']}}"
-  
+    - name: "Create default Swarm network"
+      command: "docker network create --driver overlay --attachable {{swarm_overlay_network_name}}"
+

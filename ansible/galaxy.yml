@@ -1,0 +1,8 @@
+---
+# third party ansible galaxy roles
+
+# Docker engine
+- src: amidos.install-docker
+
+# Docker swarm
+- src: atosatto.docker-swarm

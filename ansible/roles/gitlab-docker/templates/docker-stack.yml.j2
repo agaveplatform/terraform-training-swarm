@@ -1,117 +1,288 @@
-version: '2'
+version: '3.2'
 
 services:
-  traefik:
-    image: traefik:latest
-    restart: on-failure
-    ports:
-      - "80:80"
-      - "443:443"
-      - "38443:8443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - {{ gitlab_deploy_dir }}/traefik.toml:/etc/traefik/traefik.toml
-      - {{ gitlab_cert_dir }}:/ssl
-      - /var/logs/traefik:/logs
-    networks:
-      - gitlab
-    mem_limit: 512m
-    restart: on-failure
-    labels:
-      - "traefik.enable=true"
 
 {% if gitlab_deploy_redis %}
   redis:
-    restart: always
     image: sameersbn/redis:4.0.9-1
     command:
       - --loglevel warning
     volumes:
-      - redis:/var/lib/redis:Z
+      - redis:/var/lib/redis
     networks:
       - gitlab
-    labels:
-      - "traefik.enable=false"
+      - swarm-overlay
+    ports:
+      - target: 6379
+        published: {{ gitlab_redis_port }}
+        protocol: tcp
+        mode: host
+    deploy:
+      placement:
+        constraints:
+          - "node.labels.gitlab==yes"
+      labels:
+        - "traefik.enable=false"
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.01"
+          memory: 512M
+      restart_policy:
+        condition: "any"
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.3
+
 {% endif %}
 
 {% if gitlab_deploy_postgres %}
   postgresql:
-    restart: always
     image: {{ gitlab_postgres_db_image }}
     volumes:
-      - postgresql:/var/lib/postgresql:Z
+      - postgresql:/var/lib/postgresql
     ports:
-      - "{{ gitlab_postgres_db_port }}:{{ gitlab_postgres_db_port }}"
-    env_file:
-      - ./postgres.env
+      - target: {{ gitlab_postgres_db_port }}
+        published: {{ gitlab_postgres_db_port }}
+        protocol: tcp
+        mode: host
+    environment:
+      DB_ADAPTER: "postgresql"
+      DB_HOST: "{{ gitlab_postgres_db_host }}"
+      DB_PORT: "{{ gitlab_postgres_db_port }}"
+      DB_USER: "{{ gitlab_postgres_db_user }}"
+      DB_PASS: "{{ gitlab_postgres_db_password }}"
+      DB_NAME: "{{ gitlab_postgres_db_name }}"
+      DB_EXTENSION: "{{ gitlab_postgres_db_extension }}"
     networks:
       - gitlab
-    labels:
-      - "traefik.enable=false"
+      - swarm-overlay
+    deploy:
+      placement:
+        constraints:
+          - "node.labels.gitlab==yes"
+      labels:
+        - "traefik.enable=false"
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 8G
+        reservations:
+          cpus: "0.25"
+          memory: 1G
+      restart_policy:
+        condition: "any"
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.3
+
 {% endif %}
 
   gitlab:
-    restart: always
     image: {{ gitlab_image }}
     volumes:
-      - {{ gitlab_data_dir }}:/home/git/data
-      - {{ gitlab_log_dir }}:/home/git/gitlab/log
-      - {{ gitlab_cert_dir }}:/certs
+      - gitlab_data:/home/git/data
+      - gitlab_logs:/home/git/gitlab/log
+    secrets:
+      - gitlab_ssl_cert
+      - gitlab_ssl_key
     hostname: {{ gitlab_host }}
     depends_on:
       - redis
       - postgresql
     ports:
-      - "30180:80"
-      - "{{ gitlab_ssh_port }}:22"
-    external_links:
-      - "registry:{{ gitlab_registry_host }}"
-    env_file:
-      - ./gitlab.env
-      - ./postgres.env
+      - target: 80
+        published: 30180
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 30181
+        protocol: tcp
+        mode: host
+      - target: 22
+        published: {{ gitlab_ssh_port }}
+        protocol: tcp
+        mode: host
+    environment:
+{#    # Redis Settings #}
+      REDIS_HOST: "{{ gitlab_redis_host }}"
+      REDIS_PORT: "{{ gitlab_redis_port }}"
+      DEBUG: "true"
+      GITLAB_ROOT_PASSWORD: "{{ gitlab_root_password }}"
+      GITLAB_HOST: "{{ gitlab_host }}"
+      GITLAB_PORT: 80
+      GITLAB_SSH_PORT: "{{ gitlab_ssh_port }}"
+      GITLAB_SIGNUP_ENABLED: "{{ gitlab_signup_enabled }}"
+      GITLAB_HTTPS: "false"
+      SSL_SELF_SIGNED: "true"
+      SSL_CERTIFICATE_PATH: "/run/secrets/gitlab_ssl_cert"
+      SSL_KEY_PATH: "/run/secrets/gitlab_ssl_key"
+      LDAP_ENABLED: "{{ gitlab_ldap_enabled }}"
+      LDAP_HOST: "{{ gitlab_ldap_host }}"
+      LDAP_PORT: "{{ gitlab_ldap_port }}"
+      LDAP_UID: "{{ gitlab_ldap_uid }}"
+      LDAP_METHOD: "{{ gitlab_ldap_method }}"
+      LDAP_BIND_DN: "{{ gitlab_ldap_bind_dn }}"
+      LDAP_PASS: "{{ gitlab_ldap_password }}"
+      LDAP_LABEL: "Agave Platform"
+      LDAP_BASE: "{{ gitlab_ldap_base }}"
+      LDAP_VERIFY_SSL: "false"
+      SMTP_ENABLED: "{{ gitlab_smtp_enable }}"
+      SMTP_HOST: "{{ gitlab_smtp_address }}"
+      SMTP_PORT: "{{ gitlab_smtp_port }}"
+      SMTP_USER: "{{ gitlab_smtp_user_name }}"
+      SMTP_PASS: "{{ gitlab_smtp_password }}"
+      SMTP_DOMAIN: "{{ gitlab_smtp_domain }}"
+      SMTP_AUTHENTICATION: "{{ gitlab_smtp_authentication }}"
+      SMTP_TLS: "{{ gitlab_smtp_tls }}"
+      SMTP_OPENSSL_VERIFY_MODE: "none"
+      GITLAB_EMAIL: "no-reply@agaveplatform.org"
+      GITLAB_EMAIL_DISPLAY_NAME: "Agave Platform"
+      GITLAB_USERNAME_CHANGE: "false"
+      GITLAB_RELATIVE_URL_ROOT:
+      GITLAB_SECRETS_DB_KEY_BASE: "{{ gitlab_secrets_db_key_base }}"
+      GITLAB_SECRETS_SECRET_KEY_BASE: "{{ gitlab_secrets_secret_key_base }}"
+      GITLAB_SECRETS_OTP_KEY_BASE: "{{ gitlab_secrets_otp_key_base }}"
+      GITLAB_SHARED_RUNNERS_REGISTRATION_TOKEN: "{{ gitlab_default_runners_registration_token }}"
+      GITLAB_REGISTRY_ENABLED: "{{ gitlab_registry_enabled }}"
+      GITLAB_REGISTRY_HOST: "{{ gitlab_registry_host }}"
+      GITLAB_REGISTRY_PORT: 443
+      GITLAB_REGISTRY_API_URL: "http://{{ gitlab_registry_host }}:5000"
+      GITLAB_REGISTRY_CERT_PATH: "/certs/{{ gitlab_registry_host }}.crt"
+      GITLAB_REGISTRY_KEY_PATH: "/certs/{{ gitlab_registry_host }}.key"
+      GITLAB_REGISTRY_ISSUER: "gitlab-issuer"
+
+
+{#      # Postgres settings#}
+      DB_ADAPTER: "postgresql"
+      DB_HOST: "{{ gitlab_postgres_db_host }}"
+      DB_PORT: "{{ gitlab_postgres_db_port }}"
+      DB_USER: "{{ gitlab_postgres_db_user }}"
+      DB_PASS: "{{ gitlab_postgres_db_password }}"
+      DB_NAME: "{{ gitlab_postgres_db_name }}"
+      DB_EXTENSION: "{{ gitlab_postgres_db_extension }}"
     networks:
       - gitlab
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=gitlab"
-      - "traefik.frontend.rule=Host:{{ gitlab_host }}"
-      - "traefik.frontend.passHostHeader=true"
-      - "traefik.port=80"
-      - "traefik.protocol=http"
-      - "traefik.frontend.entryPoints=https,http"
+      - swarm-overlay
+    deploy:
+      placement:
+        constraints:
+          - "node.labels.gitlab==yes"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.backend=gitlab"
+        - "traefik.frontend.rule=Host:{{ gitlab_host }}"
+        - "traefik.frontend.passHostHeader=true"
+        - "traefik.port=80"
+        - "traefik.protocol=http"
+        - "traefik.frontend.entryPoints=https,http"
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 8G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.3
 
 {% if gitlab_deploy_registry %}
   registry:
-    restart: always
     image: {{ gitlab_registry_image }}
     ports:
       - "5000:5000"
     volumes:
-      - {{ gitlab_registry_data_dir }}:/var/lib/registry
-      - {{ gitlab_cert_dir }}:/certs
-    external_links:
-      - "gitlab:{{ gitlab_host }}"
-    env_file:
-      - ./registry.env
+      - gitlab_registry_data:/var/lib/registry
+    secrets:
+      - gitlab_registry_ssl_cert
+      - gitlab_registry_ssl_key
+    environment:
+{#      # registry.env #}
+      REGISTRY_LOG_LEVEL: "info"
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: "/var/lib/registry"
+      REGISTRY_AUTH_TOKEN_REALM: "{{ gitlab_external_url }}/jwt/auth"
+      REGISTRY_AUTH_TOKEN_SERVICE: "container_registry"
+      REGISTRY_AUTH_TOKEN_ISSUER: "gitlab-issuer"
+      REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE: "/certs/{{ gitlab_registry_host }}.crt"
+      REGISTRY_STORAGE_DELETE_ENABLED=true
+      REGISTRY_HTTP_TLS_CERTIFICATE: "/run/secrets/gitlab_registry_ssl_cert"
+      REGISTRY_HTTP_TLS_KEY: "/certs/gitlab_registry_ssl_key"
     networks:
       - gitlab
-    labels:
-      - "traefik.enable=true"
-      - "traefik.backend=gitlab_registry"
-      - "traefik.frontend.rule=Host:{{ gitlab_registry_host }}"
-      - "traefik.frontend.passHostHeader=true"
-      - "traefik.port=5000"
-      - "traefik.protocol=https"
-      - "traefik.frontend.entryPoints=https"
+      - swarm-overlay
+    deploy:
+      placement:
+        constraints:
+            - "node.labels.gitlab==yes"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.backend=gitlab_registry"
+        - "traefik.frontend.rule=Host:{{ gitlab_registry_host }}"
+        - "traefik.frontend.passHostHeader=true"
+        - "traefik.port=5000"
+        - "traefik.protocol=https"
+        - "traefik.frontend.entryPoints=https"
 {% endif %}
 
 networks:
-  gitlab:
+  swarm-overlay:
     external: true
+  gitlab:
 
 volumes:
+  gitlab_data:
+    external: true
+  gitlab_logs:
+    external: true
+  gitlab_ssl:
+    external: true
+  gitlab_data:
+    external: true
+  gitlab_registyr_data:
+    external: true
 {% if gitlab_deploy_postgres %}
-    postgresql:
+  postgresql:
+    external: true
 {% endif %}{% if gitlab_deploy_redis %}
-    redis:
+  redis:
+    external: true
 {% endif %}
+
+secrets:
+  gitlab_ssl_cert:
+    file: "{{ gitlab_cert_dir }}/{{ gitlab_ssl_certificate | basename }}"
+  gitlab_ssl_key:
+    file: "{{ gitlab_cert_dir }}/{{ gitlab_ssl_certificate_key | basename }}"
+{% if gitlab_deploy_registry %}
+  gitlab_registry_ssl_cert:
+    file: "{{ gitlab_cert_dir }}/{{ gitlab_registry_ssl_certificate | basename }}"
+  gitlab_registry_ssl_key:
+    file: {{ gitlab_cert_dir }}/{{ gitlab_registry_ssl_certificate_key | basename }}
+{% endif %}
+

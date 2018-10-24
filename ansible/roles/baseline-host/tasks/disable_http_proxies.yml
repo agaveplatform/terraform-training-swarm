@@ -1,0 +1,144 @@
+# Disables proxy configurations on the host for the root and
+# service user across all known locations. Currently that
+# includes
+# - .bashrc
+# - .bash_profile
+# - .profile
+# - /etc/wgetrc,
+# - /etc/profile.d
+# - /etc/profilerc
+# - /etc/envronment
+# - /etc/qualys/cloud-agent/*/qualys-cloud-agent
+# - /etc/yum.conf
+---
+
+#########################################################
+#       known environment base files
+#########################################################
+
+#
+- name: Check for known environmental http/s proxy config files
+  stat:
+    path: "{{item}}"
+  loop:
+    - /etc/environment
+    - /etc/qualys/cloud-agent/.centos/qualys-cloud-agent
+    - /etc/qualys/cloud-agent/.ubuntu/qualys-cloud-agent
+    - /etc/qualys/cloud-agent/.rhel/qualys-cloud-agent
+    - /etc/qualys/cloud-agent/.trusty/qualys-cloud-agent
+    - /etc/qualys/cloud-agent/.xenial/qualys-cloud-agent
+    - /etc/yum.conf
+    - /home/apim/bashrc
+    - /root/.bashrc
+    - /root/.bash_profile
+    - /etc/profile
+    - /root/.profile
+    - /home/apim/.bashrc
+    - /home/apim/.bash_profile
+    - /home/apim/.profile
+
+  register: proxy_config_file_exists
+
+# disable host http_proxy in environment files
+- name: Disable http/s variables if file exists
+  include_tasks: disable_proxy_if_file_exists.yml
+  loop: "{{proxy_config_file_exists.results}}"
+  when: item.stat.exists
+
+
+#########################################################
+#       wget config files
+#########################################################
+
+# find files in /etc/profile.d
+- name: Searching profile.d directory
+  find:
+    paths: /etc/profile.d
+    recurse: no
+    file_type: file
+  register: etc_profiled_listing
+
+# disable host http_proxy in /etc/profile.d files
+- name: Comment out host http_proxy variable init
+  lineinfile:
+    dest: "{{item.path}}"
+    regexp: '^\s*(?:export)?\s*http_proxy\s*=\s*(.*)$'
+    line: '#http_proxy=\1'
+    backrefs: yes
+  become: yes
+  loop: "{{ etc_profiled_listing.files }}"
+
+# disable host https_proxy in /etc/profile.d files
+- name: Comment out host https_proxy variable init
+  lineinfile:
+    dest: "{{item.path}}"
+    regexp: '^\s*(?:export)?\s*https_proxy\s*=\s*(.*)$'
+    line: '#http_proxy=\1'
+    backrefs: yes
+  become: yes
+  loop: "{{ etc_profiled_listing.files }}"
+
+
+#########################################################
+#       wget config files
+#########################################################
+
+# verify existence of wget config file locations
+- name: Disable proxy in wget config files
+  stat:
+    path: "{{item}}"
+  loop:
+    - /home/apim/.wgetrc
+    - /root/.wgetrc
+    - /etc/wgetrc
+  register: wget_config_file_exists
+
+# disable use_proxy in wget config files
+- name: Disable wget service user proxy settings
+  lineinfile: 
+    dest: "{{item.stat.path}}"
+    regexp: '^\s*use_proxy\s*=\s*(.*)$'
+    line: 'use_proxy = off'
+    backrefs: yes
+  become: yes
+  loop: "{{ wget_config_file_exists.results }}"
+  when: item.stat.exists
+
+#########################################################
+#       curl config files
+#########################################################
+
+# verify existence of curl config file locations
+- name: Disable proxy in curl config files
+  stat:
+    path: "{{item}}"
+  loop:
+    - /home/apim/.curlrc
+    - /root/.curlrc
+    - /etc/curlrc
+  register: curl_config_file_exists
+
+# disable proxy in curl config files
+- name: Disable curl service user proxy settings
+  lineinfile: 
+    dest: "{{item.stat.path}}"
+    regexp: '^\s*proxy\s*=\s*(.*)$'
+    line: '#proxy=\1'
+    backrefs: yes
+  become: yes
+  loop: "{{ curl_config_file_exists.results }}"
+  when: item.stat.exists
+
+
+
+#########################################################
+#       default .profile environment
+#########################################################
+
+# upload file to /etc/profile.d to disable by default for all users
+- name: Add script to /etc/profile.d folder to unset default proxy on this host by default
+  copy:
+    src: ../files/9999_disable_http_proxies.sh
+    dest: /etc/profile.d/9999_disable_http_proxies.sh
+    mode: 0755
+  become: yes

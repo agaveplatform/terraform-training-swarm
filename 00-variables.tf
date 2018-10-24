@@ -160,6 +160,36 @@ variable "jupyter_image" {
   default  = "agaveplatform/jupyter-notebook:5.2"
 }
 
+variable "gitlab_image" {
+  description = "The fully qualified gitlab image to use."
+  default  = "gitlab/gitlab-ce:10.3.3-ce.0"
+}
+
+variable "gitlab_db_name" {
+  description = "The gitlab postgresql database name for the service user"
+  default = "gitlab"
+}
+
+variable "gitlab_db_username" {
+  description = "The gitlab postgresql user with whom to authenticate"
+  default = "gitlab"
+}
+
+variable "gitlab_db_password" {
+  description = "The gitlab postgresql password for the service user"
+  default = "gitlab"
+}
+
+variable "gitlab_token" {
+  description = "The gitlab admin token to stage training accounts."
+  default = "96e4440f0873e44b4641e0749d1ea80a5893276c"
+}
+
+variable "gitlab_training_repository_source" {
+  description = "The location of the source repository to fork into gitlab for each user."
+  default     = "https://github.com/agavetraining/funwave-tvd"
+}
+
 variable "portainer_image" {
   description = "The fully qualified portainer image to use."
   default  = "portainer/portainer:latest"

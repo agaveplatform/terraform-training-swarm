@@ -1,0 +1,117 @@
+version: '2'
+
+services:
+  traefik:
+    image: traefik:latest
+    restart: on-failure
+    ports:
+      - "80:80"
+      - "443:443"
+      - "38443:8443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ gitlab_deploy_dir }}/traefik.toml:/etc/traefik/traefik.toml
+      - {{ gitlab_cert_dir }}:/ssl
+      - /var/logs/traefik:/logs
+    networks:
+      - gitlab
+    mem_limit: 512m
+    restart: on-failure
+    labels:
+      - "traefik.enable=true"
+
+{% if gitlab_deploy_redis %}
+  redis:
+    restart: always
+    image: sameersbn/redis:4.0.9-1
+    command:
+      - --loglevel warning
+    volumes:
+      - redis:/var/lib/redis:Z
+    networks:
+      - gitlab
+    labels:
+      - "traefik.enable=false"
+{% endif %}
+
+{% if gitlab_deploy_postgres %}
+  postgresql:
+    restart: always
+    image: {{ gitlab_postgres_db_image }}
+    volumes:
+      - postgresql:/var/lib/postgresql:Z
+    ports:
+      - "{{ gitlab_postgres_db_port }}:{{ gitlab_postgres_db_port }}"
+    env_file:
+      - ./postgres.env
+    networks:
+      - gitlab
+    labels:
+      - "traefik.enable=false"
+{% endif %}
+
+  gitlab:
+    restart: always
+    image: {{ gitlab_image }}
+    volumes:
+      - {{ gitlab_data_dir }}:/home/git/data
+      - {{ gitlab_log_dir }}:/home/git/gitlab/log
+      - {{ gitlab_cert_dir }}:/certs
+    hostname: {{ gitlab_host }}
+    depends_on:
+      - redis
+      - postgresql
+    ports:
+      - "30180:80"
+      - "{{ gitlab_ssh_port }}:22"
+    external_links:
+      - "registry:{{ gitlab_registry_host }}"
+    env_file:
+      - ./gitlab.env
+      - ./postgres.env
+    networks:
+      - gitlab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=gitlab"
+      - "traefik.frontend.rule=Host:{{ gitlab_host }}"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.port=80"
+      - "traefik.protocol=http"
+      - "traefik.frontend.entryPoints=https,http"
+
+{% if gitlab_deploy_registry %}
+  registry:
+    restart: always
+    image: {{ gitlab_registry_image }}
+    ports:
+      - "5000:5000"
+    volumes:
+      - {{ gitlab_registry_data_dir }}:/var/lib/registry
+      - {{ gitlab_cert_dir }}:/certs
+    external_links:
+      - "gitlab:{{ gitlab_host }}"
+    env_file:
+      - ./registry.env
+    networks:
+      - gitlab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=gitlab_registry"
+      - "traefik.frontend.rule=Host:{{ gitlab_registry_host }}"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.port=5000"
+      - "traefik.protocol=https"
+      - "traefik.frontend.entryPoints=https"
+{% endif %}
+
+networks:
+  gitlab:
+    external: true
+
+volumes:
+{% if gitlab_deploy_postgres %}
+    postgresql:
+{% endif %}{% if gitlab_deploy_redis %}
+    redis:
+{% endif %}

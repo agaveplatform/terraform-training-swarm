@@ -1,0 +1,49 @@
+debug = true
+
+logLevel = "DEBUG"
+
+[traefikLog]
+  filePath = "/logs/traefik.log"
+
+[accessLog]
+  filePath = "/logs/access.log"
+
+defaultEntryPoints = ["http","https"]
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+      entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+    [entryPoints.https.tls]
+      [[entryPoints.https.tls.certificates]]
+      CertFile = "/ssl/{{gitlab_host}}.crt"
+      KeyFile = "/ssl/{{gitlab_host}}.key"
+
+[web]
+address = ":8443"
+CertFile = "/ssl/{{gitlab_host}}.crt"
+KeyFile = "/ssl/{{gitlab_host}}.key"
+
+{% if gitlab_enable_acme|bool %}
+[acme]
+email = "ssl@{{ gitlab_host }}"
+storageFile = "/ssl/acme.json"
+onDemand = true
+entryPoint = "https"
+acmeLogging = true
+[acme.httpChallenge]
+  entryPoint = "http"
+
+[[acme.domains]]
+   main = "{{gitlab_host}}"
+[[acme.domains]]
+   main = "{{gitlab_registry_host}}"
+{% endif %}
+
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+domain = "docker.localhost"
+watch = true
+exposedByDefault = false

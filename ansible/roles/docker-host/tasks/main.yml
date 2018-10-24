@@ -1,0 +1,24 @@
+---
+# sets up common docker environment for all docker hosts
+
+- name: Add service user to docker group
+  user:
+    name: "{{ devops_linux_user }}"
+    state: present
+    groups: docker
+    append: yes
+  tags:
+    - host
+    - docker
+
+# Aliases, completion, helpers for docker and docker compose
+- name: Install docker aliases
+  get_url:
+    dest: /etc/profile.d/docker.aliases.sh
+    url: https://bitbucket.org/!api/2.0/snippets/deardooley/9KL4X/8cda45426572de3ff43a8da07f12e5ee95f73b5d/files/docker.aliases
+    mode: 01755
+    force: yes
+  when: update_docker_compose_version
+  tags:
+    - docker
+    - docker-aliases

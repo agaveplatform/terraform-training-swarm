@@ -1,6 +1,5 @@
 ---
 # file: site.yml
-- import_plays: swarm_mode.yml
-- import_plays: monitoring.yml
-- import_plays: training.yml
-- import_plays: build_and_test.yml
+- import_plays: playbooks/swarm-playbooks/main.yml
+- import_plays: playbooks/training-playbooks/main.yml
+- import_plays: playbooks/gitlab-playbooks/main.yml

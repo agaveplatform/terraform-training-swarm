@@ -1,0 +1,66 @@
+---
+# Sets a personal access token named 'ansible' for the `gitlab_personal_access_token_user` user.
+# If a token is already present with that name, it is revoked. A new one is added
+# in its place.
+
+#- name: Removing any conflicting tokens for the user
+#  shell: docker-compose exec -T postgresql psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "delete from personal_access_tokens where user_id = '{{ gitlab_personal_access_token_user }}' and token = '{{ gitlab_personal_access_token_value }}' and name = 'ansible';"
+#  args:
+#    chdir: "/home/{{ devops_linux_user }}/gitlab"
+
+- name: Query gitlab db to see if the token is already in use personal access token
+  shell: docker-compose -f docker-stack.yml exec -T postgresql psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "select user_id, name from personal_access_tokens where token = '{{ gitlab_personal_access_token_value }}'"
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab"
+  register: psql_token_check
+
+- name: Searching for matching token user id
+  set_fact:
+    matching_token_user_id: "{{ (psql_token_check.stdout_lines[2]|trim).split('|')[0] | trim }}"
+  when: psql_token_check is success and psql_token_check.stdout_lines|length > 3
+
+- name: Checking token conflict
+  fail:
+    msg: The supplied token is already in use. Please use a different token
+  when:
+    - psql_token_check is success and psql_token_check.stdout_lines|length > 3
+    - matching_token_user_id != gitlab_personal_access_token_user
+
+- name: Searching for matching token name
+  set_fact:
+    matching_token_name: "{{ (psql_token_check.stdout_lines[2]|trim).split('|')[1] | trim }}"
+  when: psql_token_check is success and psql_token_check.stdout_lines|length > 3
+
+- name: Checking namespace conflict
+  fail:
+    msg: >
+      The supplied token is already registered to the user with name '{{ matching_token_name }}'.
+      Please use a different token.
+  when:
+    - psql_token_check is success and psql_token_check.stdout_lines|length > 3
+    - matching_token_name == 'ansible'
+
+- name: Ensure only one key is active for the user in the ansible namespace at a given time.
+  shell: docker-compose -f docker-stack.yml exec -T postgresql psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "update personal_access_tokens set revoked = true where user_id = '{{ gitlab_personal_access_token_user }}' and name = 'ansible';"
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab"
+
+
+- name: Update the existing token lifetime and derevoke, if necessary, the access token if it alraedy exists.
+  shell: docker-compose -f docker-stack.yml exec -T postgresql psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "update personal_access_tokens set revoked = false, updated_at = CURRENT_TIMESTAMP, expires_at = '{{ "%Y-%m-%d %H:%M:%S" | strftime((ansible_date_time.epoch | int) + 63072000 ) }}' where user_id = '{{ gitlab_personal_access_token_user }}' and token = '{{ gitlab_personal_access_token_value }}' and name = 'ansible';"
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab"
+  when: psql_token_check.stdout_lines|length > 3
+
+
+- name: Insert new ansible personal access token for the user
+  shell: docker-compose -f docker-stack.yml exec -T postgresql psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "insert into personal_access_tokens (user_id, token, name, revoked, expires_at, created_at, updated_at) VALUES ({{ gitlab_personal_access_token_user }}, '{{ gitlab_personal_access_token_value }}', 'ansible', false , '{{ "%Y-%m-%d %H:%M:%S" | strftime((ansible_date_time.epoch | int) + 63072000 ) }}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);"
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab"
+  when: psql_token_check.stdout_lines|length < 4
+
+#- name: Update root personal access token
+#  shell: docker-compose exec psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "update personal_access_tokens set token = {{ gitlab_root_personal_access_token }}, revoked = false, expires_at = '{{ '%Y-%m-%d %H:%M:%S' | strftime((ansible_date_time.epoch | int) + 63072000 ) }}', last_updated = CURRENT_TIMESTAMP where user_id = 1 and revoked = false"
+#  args:
+#    chdir: "/home/{{ devops_linux_user }}/gitlab"
+#  when: "len(psql_user_personal_access_token.stdout_lines) == 3"

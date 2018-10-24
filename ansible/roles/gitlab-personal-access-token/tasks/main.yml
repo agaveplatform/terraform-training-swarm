@@ -1,0 +1,36 @@
+---
+# Sets a personal access token named 'ansible' for the `gitlab_personal_access_token_user` user.
+# If a token is already present with that name, it is revoked. A new one is added
+# in its place.
+
+- name: Lookup user id if a username is given
+  shell: docker run -i --rm {{gitlab_postgres_db_image}} psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "select id from users where username = '{{ gitlab_personal_access_token_user }}'"
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab"
+  register: psql_user_id_lookup
+  when: gitlab_personal_access_token_user.isdigit() == false
+
+- name: Verify lookup succeeded
+  fail:
+    msg: >
+      Unable to query gitlab db to resolve user id
+  when:
+    - gitlab_personal_access_token_user.isdigit() == false
+    - psql_user_id_lookup is not success
+
+- name: Verifying username exists
+  fail:
+    msg: >
+      No username found matching {{ gitlab_personal_access_token_user }}. Please
+      add the user before rotating their personal access token.
+  when:
+    - gitlab_personal_access_token_user.isdigit() == false
+    - not (psql_user_id_lookup.stdout_lines and psql_user_id_lookup.stdout | regex_search('(1 row)'))
+
+- name: Resolving user id
+  set_fact:
+    gitlab_personal_access_token_user: "{{ psql_user_id_lookup.stdout_lines[2] | trim }}"
+  when: gitlab_personal_access_token_user.isdigit() == false
+
+
+- include_tasks: set-user-personal-access-token.yml

@@ -1,0 +1,27 @@
+# deployment variables on remote host
+gitlab_data_dir: "{{ gitlab_deploy_dir }}/git-data"
+gitlab_cert_dir: "{{ gitlab_deploy_dir }}/ssl"
+gitlab_registry_data_dir: "{{ gitlab_deploy_dir }}/registry-data"
+
+
+# Public facing URL to the gitlab instance
+gitlab_external_url: "https://{{ gitlab_host }}"
+
+# SSL cert subject for gitlab
+gitlab_self_signed_cert_subj: "{{ gitlab_self_signed_cert_subject_base }}{{ gitlab_host }}"
+
+gitlab_ssl_certificate: "/etc/gitlab/ssl/{{ gitlab_host }}.crt"
+gitlab_ssl_certificate_key: "/etc/gitlab/ssl/{{ gitlab_host }}.key"
+
+
+# Public facing URL to the gitlab instance
+gitlab_registry_url: "https://{{ gitlab_registry_host }}"
+
+# Exposed port the registry is made available upon
+gitlab_registry_api_url: "http://{{ gitlab_registry_api_host }}:{{ gitlab_registry_api_port }}"
+
+# SSL cert subject for gitlab registry
+gitlab_registry_self_signed_cert_subj: "{{ gitlab_self_signed_cert_subject_base }}{{ gitlab_registry_host }}"
+
+gitlab_registry_ssl_certificate: "/etc/gitlab/ssl/{{ gitlab_registry_host }}.crt"
+gitlab_registry_ssl_certificate_key: "/etc/gitlab/ssl/{{ gitlab_registry_host }}.key"

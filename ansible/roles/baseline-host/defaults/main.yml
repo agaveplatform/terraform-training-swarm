@@ -1,0 +1,5 @@
+# should the host be cleaned and everything reinstalled
+clean_host: False
+
+# should all host http/s proxies be disabled by default
+disable_http_proxies: False

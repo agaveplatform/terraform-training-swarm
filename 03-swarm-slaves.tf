@@ -96,8 +96,8 @@ resource "null_resource" "swarm_slave_join_cluster" {
   # Connect to the swarm manager and assign relevant labels to the slave node
   provisioner "remote-exec" {
     inline = [
-      "echo 'docker node update --label-add environment=swarm ${element(openstack_compute_instance_v2.swarm_slave.*.name, count.index)}'",
-      "docker node update --label-add 'environment=swarm' ${element(openstack_compute_instance_v2.swarm_slave.*.name, count.index)}"
+      "echo 'docker node update --label-add environment=swarm --label-add slave=yes ${element(openstack_compute_instance_v2.swarm_slave.*.name, count.index)}'",
+      "docker node update --label-add 'environment=swarm' --label-add 'slave=yes' ${element(openstack_compute_instance_v2.swarm_slave.*.name, count.index)}"
     ]
     connection {
       host = "${openstack_compute_floatingip_associate_v2.swarm_manager.floating_ip}"

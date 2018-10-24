@@ -1,0 +1,167 @@
+VAGRANTFILE_API_VERSION = "2"
+
+number_swarm_managers = 1
+$number_swarm_workers = 1
+$number_training_nodes = 1
+
+Vagrant.configure("2") do |config|
+  #config.vm.network "forwarded_port", guest: 2377, host: 2377, auto_correct: true
+  #config.vm.network "forwarded_port", guest: 7946, host: 7946, auto_correct: true
+
+  (1..number_swarm_managers).each do |machine_id|
+    config.vm.define "swarm-master-#{machine_id}" do |swarm_master|
+      swarm_master.vm.box = "bento/ubuntu-16.04"
+      swarm_master.ssh.insert_key = false
+
+      swarm_master.vm.provider :virtualbox do |v|
+        v.name = "swarm-master-#{machine_id}"
+        v.memory = 2048
+        v.cpus = 2
+        #--natdnshostresolver1 is needed for private network to work with DNS
+        v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        #--ioapic is needed for multi core support
+        v.customize ["modifyvm", :id, "--ioapic", "on"]
+        # handle automatic clock skew fix when box is resumed after long sleeps.
+        # without this ntpd will not catch up on its own and you have to run
+        # sudo ntpdate ntp.ubuntu.com to resync clocks
+        #v.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000 ]
+      end
+
+      swarm_master.vm.hostname = "swarm-master-#{machine_id}"
+      swarm_master.vm.network :private_network, ip: "192.168.33.#{20+machine_id}"
+
+      if machine_id == number_swarm_managers
+        # Ansible provisioner.
+        swarm_master.vm.provision "ansible" do |ansible|
+          ansible.playbook = "playbooks/host-playbooks/main.plbk"
+          ansible.force_remote_user = true
+          ansible.become = true
+          ansible.groups = {
+            "all_groups:children" => ["docker_swarm_manager", "docker_swarm_worker"],
+            "all_groups:vars" => {
+              "ansible_python_interpreter" => "/usr/bin/python3",
+              "comments" => "'Ubuntu missing default python'",
+              "devops_linux_user" => "agaveops"
+            },
+
+              "docker_swarm_manager:children" => ["leader_node","manager_node"],
+                "leader_node" => ["swarm-master-1"],
+                "manager_node" => ["swarm-master-[1:#{number_swarm_managers}]"],
+
+              "docker_swarm_worker:children" => ["worker_node","training_node"],
+                "worker_node" => ["swarm-worker-[1:#{$number_swarm_workers}]"],
+                "training_node" => ["training-node-training00[1:#{$number_training_nodes}]"]
+          }
+          ansible.raw_arguments  = [
+            "--connection=paramiko"
+          ]
+
+        end
+      end
+    end
+  end
+
+  (1..$number_swarm_workers).each do |machine_id|
+    config.vm.define "swarm-worker-#{machine_id}" do |swarm_worker|
+      swarm_worker.vm.box = "bento/ubuntu-16.04"
+      swarm_worker.ssh.insert_key = false
+
+      swarm_worker.vm.provider :virtualbox do |v|
+        v.name = "swarm-worker-#{machine_id}"
+        v.memory = 4048
+        v.cpus = 2
+        #--natdnshostresolver1 is needed for private network to work with DNS
+        v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        #--ioapic is needed for multi core support
+        v.customize ["modifyvm", :id, "--ioapic", "on"]
+        # handle automatic clock skew fix when box is resumed after long sleeps.
+        # without this ntpd will not catch up on its own and you have to run
+        # sudo ntpdate ntp.ubuntu.com to resync clocks
+        #v.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000 ]
+      end
+
+      swarm_worker.vm.hostname = "swarm-worker-#{machine_id}"
+      swarm_worker.vm.network :private_network, ip: "192.168.33.#{20+number_swarm_managers+machine_id}"
+
+      if machine_id == $number_swarm_workers
+        # Ansible provisioner.
+        swarm_worker.vm.provision "ansible" do |ansible|
+          ansible.playbook = "playbooks/host-playbooks/main.plbk"
+          ansible.force_remote_user = true
+          ansible.become = true
+          ansible.groups = {
+            "all_groups:children" => ["docker_swarm_manager", "docker_swarm_worker"],
+            "all_groups:vars" => {
+              "ansible_python_interpreter" => "/usr/bin/python3",
+              "comments" => "'Ubuntu missing default python'",
+              "devops_linux_user" => "agaveops"
+            },
+
+              "docker_swarm_manager:children" => ["leader_node","manager_node"],
+                "leader_node" => ["swarm-master-1"],
+                "manager_node" => ["swarm-master-[1:#{number_swarm_managers}]"],
+
+              "docker_swarm_worker:children" => ["worker_node","training_node"],
+                "worker_node" => ["swarm-worker-[1:#{$number_swarm_workers}]"],
+                "training_node" => ["training-node-training00[1:#{$number_training_nodes}]"]
+          }
+          ansible.raw_arguments  = [
+            "--connection=paramiko"
+          ]
+        end
+      end
+    end
+  end
+
+  (1..$number_training_nodes).each do |machine_id|
+    config.vm.define "training-node-training00#{machine_id}" do |training_node|
+      training_node.vm.box = "bento/ubuntu-16.04"
+      training_node.ssh.insert_key = false
+
+      training_node.vm.provider :virtualbox do |v|
+        v.name = "training-node-training#{machine_id.to_s.rjust(3, '0')}"
+        v.memory = 4048
+        v.cpus = 2
+        #--natdnshostresolver1 is needed for private network to work with DNS
+        v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        #--ioapic is needed for multi core support
+        v.customize ["modifyvm", :id, "--ioapic", "on"]
+        # handle automatic clock skew fix when box is resumed after long sleeps.
+        # without this ntpd will not catch up on its own and you have to run
+        # sudo ntpdate ntp.ubuntu.com to resync clocks
+        #v.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000 ]
+      end
+
+      training_node.vm.hostname = "training-node-training00#{machine_id}"
+      training_node.vm.network :private_network, ip: "192.168.33.#{20+number_swarm_managers+$number_swarm_workers+machine_id}"
+
+
+      # Ansible provisioner.
+      training_node.vm.provision "ansible" do |ansible|
+        ansible.playbook = "playbooks/host-playbooks/main.plbk"
+        ansible.force_remote_user = true
+        ansible.become = true
+        ansible.groups = {
+          "all_groups:children" => ["docker_swarm_manager", "docker_swarm_worker"],
+          "all_groups:vars" => {
+            "ansible_python_interpreter" => "/usr/bin/python3",
+            "comments" => "'Ubuntu missing default python'",
+            "devops_linux_user" => "agaveops"
+          },
+
+            "docker_swarm_manager:children" => ["leader_node","manager_node"],
+              "leader_node" => ["swarm-master-1"],
+              "manager_node" => ["swarm-master-[1:#{number_swarm_managers}]"],
+
+            "docker_swarm_worker:children" => ["worker_node","training_node"],
+              "worker_node" => ["swarm-worker-[1:#{$number_swarm_workers}]"],
+              "training_node" => ["training-node-training00[1:#{$number_training_nodes}]"]
+        }
+        ansible.raw_arguments  = [
+          "--connection=paramiko"
+        ]
+      end
+    end
+  end
+
+end

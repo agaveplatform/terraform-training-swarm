@@ -1,0 +1,29 @@
+---
+
+- name: Install common packages
+  apt: name='{{ item }}' state=present update_cache=yes
+  loop:
+    - git
+    - gcc
+    - libssl-dev
+    - python3
+    - python3-pip
+    - python3-mysqldb
+    - acct
+    - ntp
+    - dnsutils
+    - iftop
+    - bash-completion
+    - wget
+    - apt-transport-https
+    - ca-certificates
+
+- name: Update pip
+  shell: pip3 install -U pip
+
+- name: Ensure services enabled
+  service: name='{{ item }}' state=started enabled=yes
+  loop:
+      - acct
+      - ntp
+

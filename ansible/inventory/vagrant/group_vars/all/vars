@@ -16,9 +16,19 @@
 # maintenance tasks run.
 devops_linux_user: agaveops
 
+training_base_url: "sc18.training.agaveplatform.org"
+
+training_users:
+  - training001
+
 # url of the gitlab instance. Uses the ssh host name if none are provided
 gitlab_host: "gitlab.training.agaveplatform.org"
 
 # url of the gitlab registry instance. Uses the ssh host name if none are provided
 gitlab_registry_host: "registry.training.agaveplatform.org"
 
+swarm_overlay_network_name: "swarm-overlay"
+
+gitlab_training_repository_name: "funwave-tvd"
+
+gitlab_training_repository_source: "https://github.com/agavetraining/funwave-tvd"

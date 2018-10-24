@@ -1,5 +1,5 @@
 ---
-# populate-projects
+# populate-projects.plbk
 # Run this playbook to install and configure something. 
 #
 # Assumptions:
@@ -7,19 +7,30 @@
 # `../host-playbooks/docker-host.plbk` playbook.
 #
 # Varables:
-# `clean_host`: If true, the host will be shot with a clean base configuration 
-#
+# `clean_projects`: If true, existing user projects will be cleared before population
+# `remote_`: If true, existing user projects will be cleared before population#
 # Example invocation:
-# ansible-playbook -i inventory playbooks/populate-projects
+# ansible-playbook -i inventory playbooks/populate-projects.plbk
 #
 
-- name: Gather facts
-  host: all
-  
+- hosts: gitlab
+  gather_facts: no
+
   tasks:
-    - name: gather facts from db servers
-      setup:
-      delegate_to: "{{item}}"
-      delegate_facts: True
-      loop: "{{groups['dbservers']}}"
-  
+    - name: Importing training repository for each user
+      gitlab_project:
+        server_url: "http://{{ gitlab_host | default(hostvars[groups['worker_node'][0]]['ansible_ssh_host'] + '') }}:30180"
+
+        validate_certs: False
+        login_user: root
+        login_password: "{{ gitlab_root_password }}"
+        name: "{{ gitlab_training_repository_name }}"
+        issues_enabled: False
+        wiki_enabled: False
+        snippets_enabled: False
+        import_url: "{{ gitlab_training_repository_source }}"
+        state: present
+      delegate_to: localhost
+      loop: "{{ training_users }}"
+
+

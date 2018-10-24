@@ -1,0 +1,32 @@
+---
+
+#
+# Postgres database connectivity info. The DB will be bootstrapped at startup
+# and stored in a docker volume on the host. Standard DB backups should apply.
+#
+
+# If a externally hosted postgresql server is used, set to false
+gitlab_deploy_postgres: true
+# Postgres docker image to use
+gitlab_postgres_db_image: sameersbn/postgresql:9.5-3
+# Hostname of the database. For container deployment, this is always postgres
+gitlab_postgres_db_host: postgresql
+# Port of the database. For container deployment, this is always 5432 and will not
+# only be available to the gitlab server
+gitlab_postgres_db_port: 5432
+# Database username
+gitlab_postgres_db_user: gitlab
+# Database password
+gitlab_postgres_db_password: password
+# Database name
+gitlab_postgres_db_name: gitlabhq_production
+# Database extension specific to gitlab needs
+gitlab_postgres_db_extension: pg_trgm
+
+
+# Hostname or ip of the gitlab instance
+gitlab_host: "{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
+
+# Gitlab user id for whome to rotate the personal access token
+# Defaults to root user
+gitlab_personal_access_token_user_id: 1

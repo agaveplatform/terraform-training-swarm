@@ -1,0 +1,14 @@
+---
+
+version: '2'
+
+services:
+  runner:
+    image: {{ gitlab_runner_image }}
+    restart: always
+    command: register --non-interactive --url '{{ gitlab_url }}' --registration-token '{{ gitlab_runner_token }}' --description '{{ gitlab_runner_description }}.1' --executor '{{ gitlab_runner_executor }}' --tag-list '{{ gitlab_runner_tags | join(",") }}' --docker-image  '{{ gitlab_runner_executor_image }}' --docker-privileged
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ gitlab_runner_config_dir }}:/etc/gitlab-runner
+      - {{ gitlab_runner_log_dir }}:/var/log/gitlab-runner
+      - {{ gitlab_runner_cert_dir }}:/etc/gitlab-runner/certs

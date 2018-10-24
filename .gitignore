@@ -33,3 +33,5 @@ templates/traefik/ssl/hawaii.training.agaveplatform.org.crt
 templates/traefik/ssl/hawaii.training.agaveplatform.org.key
 templates/traefik/ssl/pearc.training.agaveplatform.org.crt
 templates/traefik/ssl/pearc.training.agaveplatform.org.key
+*.retry
+/*.log

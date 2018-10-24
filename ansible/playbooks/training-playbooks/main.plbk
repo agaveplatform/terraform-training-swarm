@@ -1,6 +1,7 @@
 ---
-# main
-# Run this playbook to install and configure something. 
+# main.plbk
+# Run this playbook to deploy the training sandbox and services across the swarm.
+# Each user has their own node and full stack.
 #
 # Assumptions:
 # This playbook assumes the host has already been configured using the
@@ -10,16 +11,12 @@
 # `clean_host`: If true, the host will be shot with a clean base configuration 
 #
 # Example invocation:
-# ansible-playbook -i inventory playbooks/main
+# ansible-playbook -i inventory playbooks/training-playbooks/main.plbk
 #
 
 - name: Gather facts
-  host: all
+  host: training_node
   
-  tasks:
-    - name: gather facts from db servers
-      setup:
-      delegate_to: "{{item}}"
-      delegate_facts: True
-      loop: "{{groups['dbservers']}}"
-  
+  roles:
+    - role: training_sandbox
+    - role: jupyter_stack

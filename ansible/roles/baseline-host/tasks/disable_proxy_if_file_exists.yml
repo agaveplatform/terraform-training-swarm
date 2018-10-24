@@ -1,0 +1,27 @@
+# Disables proxy configurations on the host for the root and
+# service user across all known locations. The path is passed
+# in from the results of a stat on a list of known proxy config
+# file locations
+---
+
+#########################################################
+#       known environment base files
+#########################################################
+
+# disable host http_proxy in environment files
+- name: "Comment out http_proxy in {{ item.stat.path }} https_proxy"
+  lineinfile:
+    dest: "{{ item.stat.path }}"
+    regexp: '^\s*(?:export)?\s*http_proxy\s*=\s*(.*)$'
+    line: '#http_proxy=\1'
+    backrefs: yes
+  become: yes
+
+# disable host https_proxy in environment files
+- name: "Comment out https_proxy in {{ item.stat.path }} https_proxy"
+  lineinfile:
+    dest: "{{ item.stat.path }}"
+    regexp: '^\s*(?:export)?\s*https_proxy\s*=\s*(.*)$'
+    line: '#https_proxy=\1'
+    backrefs: yes
+  become: yes

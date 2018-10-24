@@ -1,0 +1,70 @@
+---
+
+- name: Create GitLab Runner certificate directory
+  file:
+    path: "{{ gitlab_runner_cert_dir }}"
+    state: directory
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+    mode: 0700
+    recurse: yes
+
+- name: Fetch Gitlab SSL certs to enable TLS with self-signed certs
+  shell: "openssl s_client -connect {{ item | urlsplit('host') }}:{{ item | urlsplit('port') }}  -showcerts </dev/null 2>/dev/null | sed -n '/^-----BEGIN CERT/,/^-----END CERT/p' > {{ gitlab_registry_ssl_certificate }}/{{ item | urlsplit('host') }}.crt"
+  loop:
+    - "{{ gitlab_registry_external_url }}"
+    - "{{ gitlab_external_url }}"
+
+- name: Create GitLab Runner log directory on the host.
+  become: yes
+  become_user: root
+  file:
+    path: "{{ gitlab_runner_log_dir }}"
+    state: directory
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+    mode: 0770
+    recurse: yes
+
+- name: Copy GitLab Runner configuration files into place.
+  template:
+    src: "{{ item }}"
+    dest: "{{ gitlab_runner_deploy_dir }}/{{ item | regex_replace('.j2$', '') }}"
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+    mode: 0600
+  loop:
+    - docker-compose.yml.j2
+
+- name: List configured runners
+  shell: docker-compose ps -q
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab-runner"
+  register: configured_runners
+  changed_when: False
+
+- name: Stop the runner
+  command: docker-compose down
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab-runner"
+
+- name: Clean up any unregistered runners previously registered
+  command: docker-compose run -T --rm runner verify --delete
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab-runner"
+
+- name: Unregister the current runners from the previous container
+  command: docker-compose run -T --rm runner unregister --all-runners
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab-runner"
+
+- name: Reregister the runner
+  command: docker-compose run -T --rm runner register --non-interactive --url '{{ gitlab_url }}' --registration-token '{{ gitlab_runner_token }}' --description '{{ gitlab_runner_description }}.1' --executor '{{ gitlab_runner_executor }}' --tag-list '{{ gitlab_runner_tags | join(",") }}' --docker-image  '{{ gitlab_runner_executor_image }}' --docker-privileged
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab-runner"
+  register: gitlab_runner_registration_request
+
+- name: Start the newly registered runner
+  command: docker-compose up -d
+  args:
+    chdir: "/home/{{ devops_linux_user }}/gitlab-runner"

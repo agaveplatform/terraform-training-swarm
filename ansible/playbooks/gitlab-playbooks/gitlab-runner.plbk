@@ -8,7 +8,7 @@
 # ansible-playbook -i inventory playbooks/gitlab-playbooks/gitlab-runner.plbk
 #
 - name: Install gitlab runner
-  hosts: runner
+  hosts: leader_node
   become: yes
   become_user: "{{ devops_linux_user }}"
 

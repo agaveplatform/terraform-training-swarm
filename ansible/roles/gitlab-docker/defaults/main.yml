@@ -1,0 +1,150 @@
+---
+
+gitlab_force_restart: false
+
+#
+# Docker registry info. The gitlab internal registry is passed on in favor
+# of a separate registry container.
+#
+
+# Should a registry be used
+gitlab_registry_enabled: true
+# If so, should we deploy it
+gitlab_deploy_registry: true
+# Which image to deploy
+gitlab_registry_image: "registry:2.4.1"
+# What is the public facing url of the registry
+gitlab_registry_host: registry
+# Host on which the registry api is running. Do not change this unless the repository
+# is deployed outside the stack.
+gitlab_registry_api_host: registry
+# Port on which the registry api is running. Do not change this unless the repository
+# is deployed outside the stack.
+gitlab_registry_api_port: 5000
+
+#
+# Postgres database connectivity info. The DB will be bootstrapped at startup
+# and stored in a docker volume on the host. Standard DB backups should apply.
+#
+
+# If a externally hosted redis server is used, set to false
+gitlab_deploy_redis: true
+gitlab_redis_host: redis
+gitlab_redis_port: 6379
+
+#
+# Postgres database connectivity info. The DB will be bootstrapped at startup
+# and stored in a docker volume on the host. Standard DB backups should apply.
+#
+
+# If a externally hosted postgresql server is used, set to false
+gitlab_deploy_postgres: true
+# Postgres docker image to use
+gitlab_postgres_db_image: sameersbn/postgresql:9.5-3
+# Hostname of the database. For container deployment, this is always postgres
+gitlab_postgres_db_host: postgresql
+# Port of the database. For container deployment, this is always 5432 and will not
+# only be available to the gitlab server
+gitlab_postgres_db_port: 5432
+# Database username
+gitlab_postgres_db_user: gitlab
+# Database password
+gitlab_postgres_db_password: password
+# Database name
+gitlab_postgres_db_name: gitlabhq_production
+# Database extension specific to gitlab needs
+gitlab_postgres_db_extension: pg_trgm
+
+#
+# Gitlab core configs
+#
+
+# Gitlab Docker image
+gitlab_image: "sameersbn/gitlab:11.2.3"
+# Hostname or ip of the gitlab instance
+gitlab_host: "{{ hostvars[groups['swarm_node'][0]]['ansible_ssh_host'] }}"
+# Should top level acme certs be pulled from lets encrypt?
+gitlab_enable_acme: false
+# Should user registration be enabled
+gitlab_signup_enabled: false
+
+#
+# Locations that will be volume mounted into gitlab and related containers
+#
+
+# Parent directory for the gitlab installation
+gitlab_deploy_dir: "/home/{{ devops_linux_user }}/gitlab"
+# Log directory for all stack logs
+gitlab_log_dir: "/var/logs/gitlab"
+
+
+# Gitlab ssh server port
+gitlab_external_ssh_port: 10022
+# Base SSL certificate subject for all self-signed certs created by this role
+gitlab_self_signed_cert_subject_base: "/C=US/ST=TX/L=Austin/O=AgavePlatform/CN="
+
+
+# General config. See included README.md for details
+
+gitlab_git_data_dir: "/var/opt/gitlab/git-data"
+gitlab_backup_path: "/var/opt/gitlab/backups"
+
+# SSL Configuration.
+gitlab_redirect_http_to_https: "true"
+
+# SSL Self-signed Certificate Configuration.
+gitlab_create_self_signed_cert: "true"
+
+# LDAP Configuration.
+gitlab_ldap_enabled: "false" #update all LDAP variables if true
+gitlab_ldap_host: "example.com"
+gitlab_ldap_port: "389"
+gitlab_ldap_uid: "sAMAccountName"
+gitlab_ldap_method: "plain"
+gitlab_ldap_bind_dn: "CN=Username,CN=Users,DC=example,DC=com"
+gitlab_ldap_password: "password"
+gitlab_ldap_base: "DC=example,DC=com"
+
+# SMTP Configuration
+gitlab_smtp_enable: "false" #update all SMTP variables if true
+gitlab_smtp_address: "smtp.server"
+gitlab_smtp_port: "465"
+gitlab_smtp_user_name: "smtp user"
+gitlab_smtp_password: "smtp password"
+gitlab_smtp_domain: "example.com"
+gitlab_smtp_authentication: "login"
+gitlab_smtp_enable_starttls_auto: "true"
+gitlab_smtp_tls: "false"
+gitlab_smtp_openssl_verify_mode: "none"
+gitlab_smtp_ca_path: "/etc/ssl/certs"
+gitlab_smtp_ca_file: "/etc/ssl/certs/ca-certificates.crt"
+
+# 2-way SSL Client Authentication support.
+gitlab_nginx_ssl_verify_client: ""
+gitlab_nginx_ssl_client_certificate: ""
+
+# Probably best to leave this as the default, unless doing testing.
+gitlab_restart_handler_failed_when: 'gitlab_restart.rc != 0'
+
+# Optional settings.
+gitlab_time_zone: "UTC"
+gitlab_backup_keep_time: "604800"
+gitlab_download_validate_certs: yes
+
+# Email configuration.
+gitlab_email_enabled: "false" #update all email variables if true, SMTP Configuration need to be updated as well
+gitlab_email_from: "gitlab@datamachines.io"
+gitlab_email_display_name: "Gitlab"
+gitlab_email_reply_to: "gitlab@datamachines.io"
+
+gitlab_secrets_db_key_base: secret
+gitlab_secrets_secret_key_base: secret
+gitlab_secrets_otp_key_base: secret
+gitlab_registry_http_secret: secret
+
+# Registry configuration
+#gitlab_registry_enabled: true
+#
+#gitlab_registry_host: "{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
+#gitlab_registry_port: 4567
+#gitlab_registry_path: "/var/opt/gitlab/gitlab-rails/shared/registry"

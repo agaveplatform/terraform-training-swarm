@@ -12,6 +12,12 @@ resource "openstack_compute_instance_v2" "swarm_managerx" {
 
   #user_data       =  "${data.template_file.managerinit.rendered}"
 
+  metadata = {
+    ssh_user         = "agaveops"
+    extra_groups     = "manager_nodes,swarm_manager,training_cluster,terraform,${var.training_event}"
+    depends_on       = "${var.network_id}"
+  }
+
   network {
     name          = "${openstack_networking_network_v2.swarm_tf_network1.name}"
   }

@@ -9,6 +9,12 @@ resource "openstack_compute_instance_v2" "swarm_manager" {
   key_pair        = "${openstack_compute_keypair_v2.keypair.name}"
   security_groups = ["${openstack_compute_secgroup_v2.swarm_tf_secgroup_1.name}"]
 
+  metadata = {
+    ssh_user         = "agaveops"
+    extra_groups     = "manager_nodes,leader_node,swarm_manager,training_cluster,terraform,${var.training_event}"
+    depends_on       = "${var.network_id}"
+  }
+
   network {
     name          = "${openstack_networking_network_v2.swarm_tf_network1.name}"
   }

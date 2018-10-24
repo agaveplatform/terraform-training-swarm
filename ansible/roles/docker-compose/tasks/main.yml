@@ -1,0 +1,29 @@
+---
+
+- name: Install Docker Compose binary
+  shell: curl -kL https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-$(uname -s)-$(uname -m) -o /usr/bin/docker-compose
+  when: update_docker_compose_version
+  tags:
+    - docker
+    - docker-compose
+
+- name: Ensure execute permission on the compose binary
+  file:
+    path: /usr/bin/docker-compose
+    mode: 01755
+  when: update_docker_compose_version
+  tags:
+    - docker
+    - docker-compose
+
+- name: Install docker-compose bash completion
+  get_url:
+    url: https://raw.githubusercontent.com/docker/compose/1.21.2/contrib/completion/bash/docker-compose
+    dest: /etc/bash_completion.d/docker-compose
+    mode: 01755
+    force: yes
+  when: update_docker_compose_version
+  tags:
+    - docker
+    - bash-completion
+    - docker-compose

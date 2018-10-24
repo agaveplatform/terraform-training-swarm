@@ -29,23 +29,3 @@ vault_gitlab_root_personal_token: 'ABCDEFGH-IJKL-1234'
 # deployed.
 vault_gitlab_root_client_key: ''
 vault_gitlab_root_client_secret: ''
-
-
-gitlab_ldap_enabled: "true" #update all LDAP variables if true
-gitlab_ldap_host: ""
-gitlab_ldap_port: "389"
-gitlab_ldap_uid: "sAMAccountName"
-gitlab_ldap_method: "plain"
-gitlab_ldap_bind_dn: "CN=Username,CN=Users,DC=example,DC=com"
-gitlab_ldap_password: "password"
-gitlab_ldap_base: "DC=example,DC=com"
-
-gitlab_smtp_enable: "true"
-gitlab_smtp_address: "smtp.sendgrid.net"
-gitlab_smtp_port: "587"
-gitlab_smtp_user_name: "agaveapi"
-gitlab_smtp_password: "W^1JLNJVFGy8"
-gitlab_smtp_domain: "agaveplatform.org"
-gitlab_smtp_authentication: "login"
-gitlab_smtp_enable_starttls_auto: "true"
-gitlab_smtp_tls: "false"
