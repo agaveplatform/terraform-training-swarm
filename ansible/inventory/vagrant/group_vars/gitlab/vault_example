@@ -1,0 +1,51 @@
+---
+# Secrets for gitlab server. Each variable corresponds to a
+# variable without the "vault_" prefix in the "vars" file
+# within this folder.
+#
+# This should be encrypted using vault when not editing.
+# The file will be automatically decrypted by ansible-vault
+# whenenver this group's hosts
+# are accessed.
+#
+
+# default registration token for all runners to register to this gitlab instance
+vault_gitlab_default_runners_registration_token: ChangeMe
+
+# default gitlab root password
+vault_gitlab_root_password: 5iveL!fe
+
+# The personal token of the root user that will be used to manage users, etc when
+# using the Gitlab API. This is not set by default and must be added after deployment
+# by visiting "https://{ gitlab_host }}/profile/personal_access_tokens". Either this
+# variable OR a valid client key and secret must be provided to manage Gitlab once
+# deployed.
+vault_gitlab_root_personal_token: 'ABCDEFGH-IJKL-1234'
+
+# The public key and secret for a client application owned by the root user.
+# These are not set by default and must be added after deployment by visiting
+# "https://{ gitlab_host }}/profile/applications". Either these two variables
+# OR the gitlab_root_personal_token must be provided to manage Gitlab once
+# deployed.
+vault_gitlab_root_client_key: ''
+vault_gitlab_root_client_secret: ''
+
+
+gitlab_ldap_enabled: "true" #update all LDAP variables if true
+gitlab_ldap_host: ""
+gitlab_ldap_port: "389"
+gitlab_ldap_uid: "sAMAccountName"
+gitlab_ldap_method: "plain"
+gitlab_ldap_bind_dn: "CN=Username,CN=Users,DC=example,DC=com"
+gitlab_ldap_password: "password"
+gitlab_ldap_base: "DC=example,DC=com"
+
+gitlab_smtp_enable: "true"
+gitlab_smtp_address: "smtp.sendgrid.net"
+gitlab_smtp_port: "587"
+gitlab_smtp_user_name: "agaveapi"
+gitlab_smtp_password: "W^1JLNJVFGy8"
+gitlab_smtp_domain: "agaveplatform.org"
+gitlab_smtp_authentication: "login"
+gitlab_smtp_enable_starttls_auto: "true"
+gitlab_smtp_tls: "false"

@@ -1,0 +1,57 @@
+---
+# Run this playbook to update the personal access token of a gitlab server. This is helpful
+# in enabling api access.
+#
+# Variables:
+# user_username: the username or user id for whom to set the personal access token. Defaults to root
+# gitlab_personal_access_token_value: the new value to set the access token. A random value will be selected if none is provided
+# Example invocation:
+# ansible-playbook -i inventory playbooks/gitlab-playbooks/rotate-personal-access-token.plbk -e user_username=jdoe
+
+- hosts: gitlab
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+  gather_facts: no
+
+  vars:
+    user_username: root
+    user_personal_access_token: "{{ gitlab_root_personal_token if user_username == 'root' else (99999999 | random | to_uuid) }}"
+
+  tasks:
+
+#    - name: Generating new personal access token
+#      set_fact:
+#        user_personal_access_token: "{{ 99999999 | random | to_uuid }}"
+#      when: user_personal_access_token == ''
+#
+
+    - name: Rotate the user personal access token
+      import_role:
+        name: gitlab-personal-access-token
+      vars:
+        gitlab_personal_access_token_user: "{{ user_username }}"
+        gitlab_personal_access_token_value: "{{ user_personal_access_token }}"
+      tags:
+        - gitlab
+        - gitlab-server
+
+    - debug:
+        msg: "The new personal access token for {{ user_username }} is {{ user_personal_access_token }}."
+      when: user_username != 'root'
+      tags:
+        - gitlab
+        - gitlab-server
+
+    - debug:
+        msg: "The new {{ user_username }} personal access token has been rotated. Please update the value of 'gitlab_root_personal_token' in your 'inventory/group_vars/gitlab/vault' file with the new value."
+      when: user_username == 'root'
+      tags:
+        - gitlab
+        - gitlab-server
+
+    - debug:
+        msg: "gitlab_root_personal_token: '{{user_personal_access_token}}'"
+      when: user_username == 'root'
+      tags:
+        - gitlab
+        - gitlab-server

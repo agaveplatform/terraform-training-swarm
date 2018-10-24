@@ -1,0 +1,19 @@
+---
+# main.plbk
+#
+# Deploys gitlab and gitlab runner to their respective hosts. Hosts do not need to be different,
+# but must reside in runner and gitlab groups respectively.
+#
+# See:
+# - playbooks/host-playbooks/docker-host.plbk
+# - playbooks/host-playbooks/gitlab-server.plbk
+# - playbooks/host-playbooks/gitlab-runner.plbk
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/gitlab-playbooks/main.plbk
+#
+- name: Install gitlab server(s)
+  import_playbook: gitlab-server.plbk
+
+- name: Install gitlab runner(s)
+  import_playbook: gitlab-runner.plbk

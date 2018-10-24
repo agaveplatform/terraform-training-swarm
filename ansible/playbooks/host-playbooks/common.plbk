@@ -1,0 +1,38 @@
+---
+# common.plbk
+# Run this playbook to install packages and baseline configurations for a host.
+#
+# Varables:
+# - clean_host: should the host be cleaned and deployed from scratch
+# - update_docker_version: should docker be updated? False by default. If true, all running containers will be wiped.
+# - update_docker_compose_version: should docker compose be updated?  False by default.
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/host-playbooks/common.plbk
+#
+- name: Check for python install
+  hosts: aems
+  gather_facts: False
+  become: yes
+
+  pre_tasks:
+    - name: Install python for Ansible
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+      changed_when: False
+      become: yes
+    - setup: # aka gather_facts
+      become: yes
+
+- name: Applying baseline configuration to host
+  hosts: all
+  become: yes
+
+  roles:
+    - role: baseline-host
+      vars:
+        clean_host: True
+
+#    - role: ldap-host
+#      vars:
+#        clean_host: True
+#      when: configure_ldap

@@ -1,0 +1,17 @@
+---
+# main.plbk
+# Run this playbook to install packages and baseline configurations for all hosts.
+#
+# Varables:
+# - clean_host: should the host be cleaned and deployed from scratch
+# - update_docker_version: should docker be updated? False by default. If true, all running containers will be wiped.
+# - update_docker_compose_version: should docker compose be updated?  False by default.
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/host-playbooks/main.plbk
+#
+- name: Applying baseline configuration to host
+  import_playbook: common.plbk
+
+- name: Applying Docker host configurations
+  import_playbook: docker-host.plbk

@@ -1,0 +1,20 @@
+---
+# Run this playbook to install and/or update a gitlab runner. The server will be installed
+# independently by the gitlab-server.plbk. This playbook assumes the host has already been
+# configured by running the `../host-playbooks/docker-host.plbk` and a valid gitlab server
+# is up and running.
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/gitlab-playbooks/gitlab-runner.plbk
+#
+- name: Install gitlab runner
+  hosts: runner
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+  roles:
+    - role: gitlab-ci-runner
+      tags:
+        - gitlab
+        - gitlab-runner
+

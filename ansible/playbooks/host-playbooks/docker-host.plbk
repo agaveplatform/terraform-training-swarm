@@ -1,0 +1,25 @@
+---
+# Run this playbook to make a VM into a docker host and ensure the docker engine is running.
+# The lastest Docker CE version is installed from the Docker repository. CentOS and Debian supported.
+# Aliases and bash completion are also installed by default.
+#
+# Variables:
+# - update_docker_version: should docker be updated? False by default. If true, all running containers will be wiped.
+# - update_docker_compose_version: should docker compose be updated?  False by default.
+#
+# Example invocation:
+# $ ansible-playbook -i inventory playboks/host-playbooks/docker-host.plbk
+#
+- hosts: all
+  become: yes
+
+  roles:
+    - role: amidos.install-docker
+      vars:
+        update_docker_version: True
+
+    - role: docker-compose
+      vars:
+        update_docker_compose_version: True
+
+    - role: docker-host
