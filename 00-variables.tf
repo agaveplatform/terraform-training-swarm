@@ -182,7 +182,7 @@ variable "gitlab_db_password" {
 
 variable "gitlab_token" {
   description = "The gitlab admin token to stage training accounts."
-  default = "96e4440f0873e44b4641e0749d1ea80a5893276c"
+  default = ""
 }
 
 variable "gitlab_training_repository_source" {

@@ -1,0 +1,10 @@
+---
+# tasks file for gitlab-user-training-accounts
+# ensures users exist and have the default training repo present
+
+- name: Creating gitlab training users
+  include_tasks: create-users.yml
+
+- name: Creating gitlab training user repositories
+  include_tasks: create-training-repositories.yml
+

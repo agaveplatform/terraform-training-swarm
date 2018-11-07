@@ -1,0 +1,44 @@
+---
+
+- name: Ensure ssl directory exists for remote self-signed TLS certs
+  file:
+    path: "{{ cert_deployment_dir }}"
+    state: directory
+
+- name: Generate RSA Key
+  command: openssl genrsa \
+    -out "{{cert_deployment_dir}}/{{ service_hostname }}.key" 2048
+  args:
+    creates: "{{cert_deployment_dir}}/{{ service_hostname }}.key"
+
+- name: Generate CSR
+  command: openssl req \
+    -new \
+    -subj "/C=US/ST=Virginia/L=Reston/O=DSRA/CN={{service_hostname}}" \
+    -key "{{cert_deployment_dir}}/{{ service_hostname }}.key" \
+    -out "{{cert_deployment_dir}}/{{ service_hostname }}.csr"
+  args:
+    creates: "{{cert_deployment_dir}}/{{ service_hostname }}.csr"
+
+- name: Generate self-signed OpenSSL certificate
+  command: openssl req \
+    -x509 \
+    -days 1825 \
+    -key "{{cert_deployment_dir}}/{{ service_hostname }}.key" \
+    -in "{{cert_deployment_dir}}/{{ service_hostname }}.csr" \
+    -out "{{cert_deployment_dir}}/{{ service_hostname }}.crt"
+  args:
+    creates: "{{cert_deployment_dir}}/{{ service_hostname }}.crt"
+#
+#- name: Ensure ownership of ssl certs
+#  file:
+#    path: "{{ item }}"
+#    state: directory
+#    owner: "{{ devops_linux_user }}"
+#    group: "{{ devops_linux_user }}"
+#    mode: 0600
+#    recurse: yes
+#  loop:
+#    - "{{cert_deployment_dir}}/{{ service_hostname }}.crt"
+#    - "{{cert_deployment_dir}}/{{ service_hostname }}.key"
+#    - "{{cert_deployment_dir}}/{{ service_hostname }}.csr"

@@ -1,0 +1,52 @@
+version: '3.2'
+
+networks:
+  swarm_overlay:
+    external:
+      name: {{ swarm_overlay_network_name }}
+  gitlab:
+    external:
+      name: gitlab_gitlab
+
+services:
+
+  traefik:
+    image: traefik:latest
+    hostname: {{ traefik_hostname }}
+    command: --configFile=/run/secrets/traefik_config_file
+    secrets:
+        - traefik_config_file
+    networks:
+      - swarm_overlay
+      - gitlab
+    ports:
+      - "80:80"
+      - "443:443"
+      - "28443:28443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - {{ traefik_cert_deployment_dir }}:/ssl
+      - {{ traefik_log_dir }}:/logs
+    labels:
+      - traefik.enable=false
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      labels:
+        - ops.service.type=proxy
+        - ops.service.name=traefik
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.3
+
+secrets:
+  traefik_config_file:
+    file: "{{ traefik_deployment_dir }}/traefik.toml"

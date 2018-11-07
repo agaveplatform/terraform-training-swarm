@@ -1,0 +1,6 @@
+---
+
+- name: restart traefik
+  command: docker stack deploy -c {{ traefik_deployment_dir }}/stack.yml traefik
+  register: traefik_restart
+#  failed_when: traefik_restart_handler_failed_when

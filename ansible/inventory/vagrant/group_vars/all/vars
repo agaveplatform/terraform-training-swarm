@@ -18,8 +18,9 @@ devops_linux_user: agaveops
 
 training_base_url: "sc18.training.agaveplatform.org"
 
-training_users:
-  - training001
+training_users: "training001"
+
+training_user_password: "{{ vault_training_user_password }}"
 
 # url of the gitlab instance. Uses the ssh host name if none are provided
 gitlab_host: "gitlab.training.agaveplatform.org"
@@ -29,6 +30,8 @@ gitlab_registry_host: "registry.training.agaveplatform.org"
 
 swarm_overlay_network_name: "swarm-overlay"
 
-gitlab_training_repository_name: "funwave-tvd"
+gitlab_training_repository_name: "FUNWAVE-TVD"
 
-gitlab_training_repository_source: "https://github.com/agavetraining/funwave-tvd"
+gitlab_training_repository_source: "https://github.com/fengyanshi/FUNWAVE-TVD"
+
+traefik_host_proxy_enable_acme: false

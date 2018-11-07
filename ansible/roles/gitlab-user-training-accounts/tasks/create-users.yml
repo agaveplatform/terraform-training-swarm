@@ -1,0 +1,69 @@
+---
+# ensures users accounts are created
+
+- name: Look up user to get id
+  uri:
+    url: "https://{{gitlab_host}}/api/v4/users?username={{item}}"
+    headers:
+      Content-Type: application/json
+      PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
+    method: GET
+    validate_certs: False
+    return_content: yes
+    force_basic_auth: yes
+    follow_redirects: yes
+    status_code: 200
+  register: gitlab_user_lookup_resp
+  loop: "{{ gitlab_user_training_accounts_training_usernames }}"
+  ignore_errors: yes
+#
+#- debug:
+#      var: gitlab_user_lookup_resp
+
+- name: Delete users prior to init
+  uri:
+    url: "https://{{gitlab_host}}/api/v4/users/{{gitlab_user_lookup_resp.results[training_user_idx].json[0].id}}"
+    headers:
+      Content-Type: application/json
+      PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
+    method: DELETE
+    validate_certs: False
+    return_content: yes
+    force_basic_auth: yes
+    follow_redirects: yes
+    status_code: 204
+  loop: "{{ gitlab_user_training_accounts_training_usernames }}"
+  loop_control:
+    index_var: training_user_idx
+  ignore_errors: yes
+  when: gitlab_user_training_accounts_clear_user_data|bool and ((gitlab_user_lookup_resp.results[training_user_idx].failed|bool) == false)
+
+#
+#- debug:
+#      var: gitlab_user_lookup_resp
+
+- name: Create user account if missing
+  uri:
+    url: "http://{{gitlab_host}}/api/v4/users"
+    headers:
+      Content-Type: application/json
+      PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
+      namespace_id: "root"
+    method: POST
+    validate_certs: False
+    return_content: yes
+    force_basic_auth: yes
+    follow_redirects: yes
+    body_format: json
+    body: "{{ lookup('template', 'user.json') | to_json }}"
+    status_code: 201
+  register: gitlab_create_user_response
+  when: gitlab_user_training_accounts_clear_user_data|bool or (gitlab_user_lookup_resp is defined and (gitlab_user_lookup_resp.results[0].skipped|bool))
+  loop: "{{ gitlab_user_training_accounts_training_usernames }}"
+  loop_control:
+    index_var: training_user_idx
+  ignore_errors: yes
+
+#- debug:
+#    var: gitlab_create_user_response.results
+

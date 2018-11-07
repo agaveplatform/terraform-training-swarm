@@ -27,5 +27,10 @@
 
   tasks:
     - name: "Create default Swarm network"
-      command: "docker network create --driver overlay --attachable {{swarm_overlay_network_name}}"
-
+      docker_network:
+        state: present
+        driver: overlay
+        appends: true
+        network_name: "{{swarm_overlay_network_name}}"
+      tags:
+        - overlay_network

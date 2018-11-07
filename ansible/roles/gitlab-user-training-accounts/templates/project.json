@@ -1,0 +1,13 @@
+{
+  "name": "{{ gitlab_training_repository_name }}",
+  "namespace": "{{ item }}",
+  "path": "{{ gitlab_training_repository_name }}",
+  "default_branch": "master",
+  "visibility": "private",
+  "issues_enabled": false,
+  "wiki_enabled": false,
+  "snippets_enabled": false,
+  "container_registry_enabled": false,
+  "shared_runners_enabled": false,
+  "public_jobs": false
+}

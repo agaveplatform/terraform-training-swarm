@@ -1,0 +1,10 @@
+---
+- name: Installing traefik reverse proxy as frontend for the swarm
+  hosts: traefik
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+  roles:
+    - role: traefik
+      tags:
+        - traefik

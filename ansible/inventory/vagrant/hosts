@@ -10,7 +10,7 @@ leader_node
 manager_node
 
 [leader_node]
-swarm-master-1 ansible_ssh_host=192.168.33.21
+swarm-master-1 ansible_ssh_host=192.168.33.21 swarm_labels=leader,gitlab,worker
 
 [manager_node]
 swarm-master-1 ansible_ssh_host=192.168.33.21
@@ -21,7 +21,7 @@ training_node
 
 
 [worker_node]
-swarm-worker-1 ansible_ssh_host=192.168.33.22 swarm_labels=worker,gitlab,prometheus
+swarm-worker-1 ansible_ssh_host=192.168.33.22 swarm_labels=worker,prometheus
 
 
 [training_node]
@@ -29,3 +29,9 @@ training-node-training001 ansible_ssh_host=192.168.33.23 swarm_labels=training-n
 
 [gitlab]
 swarm-master-1 ansible_ssh_host=192.168.33.21
+
+[traefik]
+swarm-master-1 ansible_ssh_host=192.168.33.21
+
+[local]
+localhost connection=local ansible_python_interpreter=../../venv/bin/python3

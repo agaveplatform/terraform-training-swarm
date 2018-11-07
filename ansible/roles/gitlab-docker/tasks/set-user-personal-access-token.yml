@@ -4,12 +4,12 @@
 # in its place.
 
 - name: Invalidate any existing ansible personal access tokens for the root user
-  shell: docker-compose exec psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "update personal_access_tokens set revoked = true where user_id = {{ access_token_user_id }} and name = 'ansible'"
+  shell: docker run -i --rm  -e "PGPASSWORD={{ gitlab_postgres_db_password }}" {{ gitlab_postgres_db_image }} psql -U{{ gitlab_postgres_db_user }} -p{{ gitlab_postgres_db_port }} -h{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }} {{ gitlab_postgres_db_name }} -c "update personal_access_tokens set revoked = true where user_id = {{ access_token_user_id }} and name = 'ansible'"
   args:
     chdir: "/home/{{ devops_linux_user }}/gitlab"
 
 - name: Insert new ansible personal access token for the root user
-  shell: docker-compose exec psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "insert into personal_access_tokens (user_id, token, name, revoked, expires_at, created_at, updated_at) VALUES ({{ access_token_user_id }}, '{{ gitlab_root_personal_access_token }}', 'ansible', false , '{{ "%Y-%m-%d %H:%M:%S" | strftime((ansible_date_time.epoch | int) + 63072000 ) }}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+  shell: docker run -i --rm  -e "PGPASSWORD={{ gitlab_postgres_db_password }}" {{ gitlab_postgres_db_image }} psql -U{{ gitlab_postgres_db_user }} -p{{ gitlab_postgres_db_port }} -h{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }} {{ gitlab_postgres_db_name }} -c "insert into personal_access_tokens (user_id, token, name, revoked, expires_at, created_at, updated_at) VALUES ({{ access_token_user_id }}, '{{ gitlab_root_personal_access_token }}', 'ansible', false , '{{ "%Y-%m-%d %H:%M:%S" | strftime((ansible_date_time.epoch | int) + 63072000 ) }}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
   args:
     chdir: "/home/{{ devops_linux_user }}/gitlab"
 

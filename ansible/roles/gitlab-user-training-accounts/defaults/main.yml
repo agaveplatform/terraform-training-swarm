@@ -1,0 +1,8 @@
+---
+# defaults file for gitlab-user-training-repos
+
+# list of usernames to create
+gitlab_user_training_accounts_training_usernames: []
+
+# True if the user accounts should be deleted before running
+gitlab_user_training_accounts_clear_user_data: True

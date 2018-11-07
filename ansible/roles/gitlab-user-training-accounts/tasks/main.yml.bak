@@ -1,0 +1,39 @@
+---
+# tasks file for gitlab-user-training-repos
+
+#- name: Ensure gitlab api module is installed
+#  pip:
+#    name: "{{ item }}"
+#  environment:
+#    PYCURL_SSL_LIBRARY: nss
+#  loop:
+#    - pycurl
+#    - python-gitlab
+
+- name: Importing training repository for each user
+  gitlab_project:
+    server_url: "http://{{ gitlab_host }}"
+    login_user: "training001"
+    login_password: "hpc_inspires"
+    name: "foo"
+    issues_enabled: False
+    wiki_enabled: False
+    snippets_enabled:  False
+    state: present
+    validate_certs: False
+  delegate_to: localhost
+#  loop: "{{ training_users.split(',') | list }}"
+#  when: training_users != ''
+
+- name: Add push webook for each of the training repositories
+  gitlab_hooks:
+    api_url: "http://{{ gitlab_host }}:30180/api"
+    enable_ssl_verification: no
+    login_user: "{{ item }}"
+    login_password: "{{ training_user_password }}"
+    project: "{{ gitlab_training_repository_name }}"
+    hook_url: "http://postb.in/quEdKPjA"
+    #hook_url: "https://{{ item }}.{{ training_base_url }}/jenkins/funwave-build?token=12345"
+    state: present
+  loop: "{{ training_users.split(',') | list }}"
+  when: training_users != ''

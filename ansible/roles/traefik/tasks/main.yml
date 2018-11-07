@@ -1,0 +1,46 @@
+---
+- name: Create Traefik SSL configuration folder.
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ devops_linux_user}}"
+    group: "{{ devops_linux_user}}"
+    mode: 0700
+  loop:
+    - "{{ traefik_deployment_dir }}"
+    - "{{ traefik_log_dir }}"
+    - "{{ traefik_cert_deployment_dir }}"
+
+- name: Create self-signed certificate.
+  include_tasks: create_tls_certs.yml
+  vars:
+    - cert_deployment_dir: "{{ traefik_cert_deployment_dir }}"
+    - service_hostname: "{{ traefik_hostname }}"
+  when: traefik_create_self_signed_cert
+
+- name: Copy traefik config files to server
+  template:
+    src: "{{ item }}"
+    dest: "{{ traefik_deployment_dir }}/{{ item | regex_replace('.j2$', '') }}"
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+    mode: 0600
+  loop:
+    - stack.yml.j2
+    - traefik.toml.j2
+  notify: restart traefik
+
+- name: Deploy traefik stack to the swarm
+  command: docker stack deploy -c {{ traefik_deployment_dir }}/stack.yml traefik
+  args:
+    chdir: "{{ traefik_deployment_dir }}"
+
+- name: wait for traefik to startup
+  wait_for:
+    host: "{{ traefik_hostname }}"
+    port: 443
+    delay: 10
+
+
+
+

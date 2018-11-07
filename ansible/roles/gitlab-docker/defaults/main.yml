@@ -1,6 +1,7 @@
 ---
 
 gitlab_force_restart: false
+gitlab_clean_stack: false
 
 #
 # Docker registry info. The gitlab internal registry is passed on in favor

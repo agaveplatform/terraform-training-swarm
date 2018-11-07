@@ -1,0 +1,31 @@
+---
+# Run this playbook to update the admin status of gitlab users. This is required
+# if your ldap or oauth provider does not have the proper group or roles to
+# tie into gitlab's RBAC.
+#
+# Variables:
+# `user_usernames`: *Required* comma separated list of usernames for whom admin will be granted.
+# `revoke_permission`: should admin be revoked rather than granted. Default: False
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/gitlab-playbooks/grant-user-admin-permissions.plbk -e user_username=jdoe,bsmith,ssmith
+
+- hosts: gitlab
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+  gather_facts: yes
+
+  vars:
+    user_usernames: root
+    revoke_permission: False
+
+  roles:
+
+    - role: gitlab-admin-users
+      vars:
+        gitlab_admin_user_usernames: "{{ user_usernames }}"
+        gitlab_admin_user_revoke_privileges: "{{ revoke_permission }}"
+      tags:
+        - gitlab
+        - gitlab-server
+        - gitlab-admin

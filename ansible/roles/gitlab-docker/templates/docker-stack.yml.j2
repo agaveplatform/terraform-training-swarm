@@ -20,7 +20,7 @@ services:
     deploy:
       placement:
         constraints:
-          - "node.labels.gitlab==yes"
+          - "node.labels.gitlab==true"
       labels:
         - "traefik.enable=false"
       replicas: 1
@@ -30,7 +30,7 @@ services:
           memory: 2G
         reservations:
           cpus: "0.01"
-          memory: 512M
+          memory: 256M
       restart_policy:
         condition: "any"
         delay: 5s
@@ -69,7 +69,7 @@ services:
     deploy:
       placement:
         constraints:
-          - "node.labels.gitlab==yes"
+          - "node.labels.gitlab==true"
       labels:
         - "traefik.enable=false"
       replicas: 1
@@ -79,7 +79,7 @@ services:
           memory: 8G
         reservations:
           cpus: "0.25"
-          memory: 1G
+          memory: 512M
       restart_policy:
         condition: "any"
         delay: 5s
@@ -183,7 +183,7 @@ services:
     deploy:
       placement:
         constraints:
-          - "node.labels.gitlab==yes"
+          - "node.labels.gitlab==true"
       labels:
         - "traefik.enable=true"
         - "traefik.backend=gitlab"
@@ -199,7 +199,7 @@ services:
           memory: 8G
         reservations:
           cpus: "0.5"
-          memory: 1G
+          memory: 512M
       restart_policy:
         condition: any
         delay: 5s
@@ -239,7 +239,7 @@ services:
     deploy:
       placement:
         constraints:
-            - "node.labels.gitlab==yes"
+            - "node.labels.gitlab==true"
       labels:
         - "traefik.enable=true"
         - "traefik.backend=gitlab_registry"

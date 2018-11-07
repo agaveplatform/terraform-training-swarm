@@ -2,7 +2,7 @@
 
 # Looks up the `access_token_user_id` user personal access token
 - name: Query gitlab db for personal access token
-  shell: docker-compose -f docker-stack.yml -T postgresql psql -U{{ gitlab_postgres_db_user }} {{ gitlab_postgres_db_name }} -c "select token from personal_access_tokens where user_id = '{{ gitlab_personal_access_token_user_id }}' and name = 'ansible'"
+  shell: docker run -i --rm  -e "PGPASSWORD={{ gitlab_postgres_db_password }}" {{ gitlab_postgres_db_image }} psql -U{{ gitlab_postgres_db_user }} -p{{ gitlab_postgres_db_port }} -h{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }} {{ gitlab_postgres_db_name }} -c "select token from personal_access_tokens where user_id = '{{ gitlab_personal_access_token_user_id }}' and name = 'ansible'"
   args:
     chdir: "/home/{{ devops_linux_user }}/gitlab"
   register: psql_user_personal_access_token

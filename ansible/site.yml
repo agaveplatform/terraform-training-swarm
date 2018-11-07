@@ -1,5 +1,7 @@
 ---
 # file: site.yml
+- import_plays: playbooks/host-playbooks/main.yml
 - import_plays: playbooks/swarm-playbooks/main.yml
-- import_plays: playbooks/training-playbooks/main.yml
+- import_plays: playbooks/proxy-playbooks/traefik.yml
 - import_plays: playbooks/gitlab-playbooks/main.yml
+- import_plays: playbooks/training-playbooks/main.yml

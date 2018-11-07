@@ -1,0 +1,11 @@
+---
+# Sets the admin flag for the `gitlab_admin_user_usernames` granting or revoking admin
+# permissions based on whether gitlab_admin_user_revoke_privileges is false or true
+# respectively.
+#
+- name: Updated user admin status in the db
+  shell: docker run -i --rm  -e "PGPASSWORD={{ gitlab_postgres_db_password }}" {{ gitlab_postgres_db_image }} psql -U{{ gitlab_postgres_db_user }} -p{{ gitlab_postgres_db_port }} -h{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }} {{ gitlab_postgres_db_name }} -c "update users set admin = {{ 'false' if (gitlab_admin_user_revoke_privileges|bool) else 'true'}} where username = '{{ item }}';"
+  register: psql_user_admin_update
+  when: gitlab_admin_user_usernames is defined and gitlab_admin_user_usernames != ''
+  loop: "{{ gitlab_admin_user_usernames.split(',') | list }}"
+

@@ -1,0 +1,35 @@
+---
+# enable debug logging in traefik logs
+traefik_debug: false
+
+traefik_acme_email: "ssl@{{training_base_url}}"
+
+# folder where traefik configs will be deployed
+traefik_deployment_dir: "/home/{{devops_linux_user}}/traefik"
+
+# folder where traefik log files will be written
+traefik_log_dir: "/home/{{devops_linux_user}}/logs/traefik"
+
+# folder for generated ssl certs
+traefik_cert_deployment_dir: "/home/{{devops_linux_user}}/traefik/ssl"
+
+# should self signed certs be generated?
+traefik_create_self_signed_cert: true
+
+# should lets encrypte be used
+traefik_acme_enabled: true
+
+# set to false to use prod vs staging acme server
+traefik_acme_staging_enabled: true
+# path to custom acme ca server for staging tests
+traefik_acme_staging_caserver: "https://acme-staging.api.letsencrypt.org/directory"
+
+# should a wilcard cert be requested
+traefik_acme_request_wilcard_cert: false
+
+# the hostname to use as entrypoint to traefik
+traefik_hostname: "{{ training_base_url | default('sc18.training.agaveplatform.org') }}"
+
+# the subdomains to request under the `traefik_hostname`
+traefik_acme_sans: "{{ (training_users | default('')).split(',') | list }}"
+

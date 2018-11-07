@@ -1,0 +1,6 @@
+# should a wilcard cert be requested
+traefik_acme_request_wilcard_cert: false
+
+# the subdomains to request under the `traefik_hostname`
+traefik_acme_sans: "{{ (training_users | default('')).split(',') | list }}"
+

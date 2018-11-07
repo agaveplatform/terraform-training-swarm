@@ -17,3 +17,4 @@
 
 - name: Set personal access token for admin user
   import_playbook: rotate-personal-access-token.plbk
+

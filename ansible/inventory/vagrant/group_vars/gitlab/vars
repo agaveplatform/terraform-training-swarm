@@ -18,7 +18,7 @@
 ---
 # url of the gitlab instance. Uses the ssh host name if none are provided
 #gitlab_host: "gitlab.dmca.io"
-gitlab_host: "{{ hostvars[groups['worker_node'][0]]['ansible_ssh_host'] }}"
+gitlab_host: "{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
 
 # the default gitlab admin password
 gitlab_root_password: "{{ vault_gitlab_root_password }}"
@@ -48,9 +48,9 @@ gitlab_ssh_port: 10022
 
 gitlab_deploy_registry: false
 
-gitlab_postgres_db_host: "{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
+gitlab_postgres_db_host: "postgresql"#{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
 
-gitlab_redis_host: 192.168.33.22
+gitlab_redis_host: "redis"#"{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
 
 # Should a registry be used
 gitlab_registry_enabled: false

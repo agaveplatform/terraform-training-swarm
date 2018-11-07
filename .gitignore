@@ -1,3 +1,4 @@
+/ansible/venv
 terraform.tfstate
 *.backup
 overrides
@@ -35,3 +36,5 @@ templates/traefik/ssl/pearc.training.agaveplatform.org.crt
 templates/traefik/ssl/pearc.training.agaveplatform.org.key
 *.retry
 /*.log
+*.log
+ansible/.vagrant

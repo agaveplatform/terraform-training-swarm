@@ -65,6 +65,24 @@
     state: present
     driver: overlay
 
+- name: Scaling down existing gitlab services
+  command: docker service scale gitlab_{{ item }}=0
+  args:
+    chdir: "{{ gitlab_deploy_dir }}"
+  loop:
+    - gitlab
+    - postgresql
+    - redis
+  ignore_errors: yes
+  when: gitlab_clean_stack|bool
+
+- name: Removing gitlab stack
+  command: docker stack rm gitlab
+  args:
+    chdir: "{{ gitlab_deploy_dir }}"
+  ignore_errors: yes
+  when: gitlab_clean_stack|bool
+
 - name: Restarting gitlab stack
   command: docker stack deploy -c docker-stack.yml gitlab
   args:
