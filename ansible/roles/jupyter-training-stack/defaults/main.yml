@@ -1,0 +1,36 @@
+---
+
+docker_swarm_overlay_network_name: "swarm-overlay"
+
+# Agave parameters
+# training account username
+training_username: "{{ hostvars[inventory_hostname]['training_user'] }}"
+# trainning account password
+training_password: "password"
+# agave tenant to use
+training_agave_tenant_id: "sandbox"
+# custom url of the agave tenant to use if not in the public discovery service
+training_agave_tenants_api_baseurl: "https://sandbox.agaveplatform.org"
+
+# training event name used to tag the containers
+training_event: "sc18"
+# Base url for the wildcard dns entries used in the swarm's reverse proxy
+training_base_url: "{{training_event}}.training.agaveplatform.org"
+# public hostname of the vm
+training_sandbox_vm_hostname: "{{ training_username }}.{{ training_base_url }}"
+# public ip address if the host
+training_sandbox_vm_ip_address: "{{ hostvars[inventory_hostname]['ansible_ssh_host'] }}"
+
+
+# deployment path on remote host
+jupyter_training_stack_deployment_dir: "/home/{{ devops_linux_user }}/jupyter-training-stack/{{ training_username }}"
+# where to copy the sandbox keys on the remote host.
+jupyter_training_stack_sshkey_dir: "/home/{{ devops_linux_user }}/sshkey/{{ training_username }}"
+
+# Docker image to deploy for jupyterhub
+jupyter_training_stack_jupyter_image: "agaveplatform/jupyter-notebook:5.2"
+# Docker image to deploy for jenkins
+jupyter_training_stack_jenkins_image: "agaveplatform/jenkins:sc18"
+
+# The location of the
+jupyter_training_install_notebook_url: "https://raw.githubusercontent.com/agavetraining/sc18/master/INSTALL.ipynb"

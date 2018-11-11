@@ -1,0 +1,67 @@
+version: '3.7'
+
+networks:
+  {{training_username}}-training:
+  swarm_overlay:
+    external:
+      name: {{swarm_overlay_network_name}}
+
+volumes:
+  {{training_username}}-training-volume:
+    external:
+      name: {{training_username}}-training-volume
+{##}
+{#secrets:#}
+{#  {{training_username}}-ssh-public-key:#}
+{#    file: "{{ training_sandbox_sshkey_dir }}/id_rsa.pub"#}
+{#  {{training_username}}-ssh-private-key:#}
+{#    file: "{{ training_sandbox_sshkey_dir }}/id_rsa"#}
+{#  {{training_username}}-ssh-authorized_keys:#}
+{#    file: "{{ training_sandbox_sshkey_dir }}/authorized_keys"#}
+{#  {{training_username}}-ssh-config:#}
+{#    file: "{{ training_sandbox_sshkey_dir }}/id_rsa"#}
+
+services:
+
+  {{training_username}}-sandbox:
+    image: {{training_sandbox_image}}
+    hostname: {{training_sandbox_vm_hostname}}
+    privileged: True
+    restart: on-failure
+    ports:
+      - '10022:22'
+    environment:
+      - VM_MACHINE={{training_sandbox_vm_hostname}}
+      - VM_IPADDRESS={{training_sandbox_vm_ip_address}}
+      - VM_HOSTNAME={{training_sandbox_vm_hostname}}
+      - VM_SSH_PORT=10022
+      - USE_TUNNEL={{ training_standbox_enable_ngrok| bool | ternary('True', 'False') }}
+      - ENVIRONMENT=training
+      - AGAVE_CACHE_DIR=/home/jovyan/work/.agave
+    volumes:
+      - {{training_username}}-training-volume:/home/jovyan/work
+      - {{ training_sandbox_sshkey_dir }}:/home/jovyan/.ssh
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - {{training_username}}-training
+{#    secrets:#}
+{#      - source: {{training_username}}-ssh-public-key#}
+{#        target: /home/jovyan/.ssh/id_rsa.pub#}
+{#        uid: '1000'#}
+{#        gid: '1000'#}
+{#        mode: 0600#}
+{#      - source: {{training_username}}-ssh-private-key#}
+{#        target: /home/jovyan/.ssh/id_rsa#}
+{#        uid: '1000'#}
+{#        gid: '1000'#}
+{#        mode: 0600#}
+{#      - source: {{training_username}}-ssh-authorized_keys#}
+{#        target: /home/jovyan/.ssh/authorized_keys#}
+{#        uid: '1000'#}
+{#        gid: '1000'#}
+{#        mode: 0600#}
+{#      - source: {{training_username}}-ssh-config#}
+{#        target: /home/jovyan/.ssh/config#}
+{#        uid: '1000'#}
+{#        gid: '1000'#}
+{#        mode: 0700#}

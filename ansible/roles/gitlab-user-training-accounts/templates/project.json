@@ -9,5 +9,6 @@
   "snippets_enabled": false,
   "container_registry_enabled": false,
   "shared_runners_enabled": false,
+  "import_url": "{{ gitlab_training_repository_source }}",
   "public_jobs": false
 }

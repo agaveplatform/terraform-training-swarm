@@ -3,33 +3,31 @@
 
 - name: Look up user to get id
   uri:
-    url: "https://{{gitlab_host}}/api/v4/users?username={{item}}"
+    url: "http://{{gitlab_host}}/api/v4/users?username={{item}}"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
     method: GET
     validate_certs: False
     return_content: yes
-    force_basic_auth: yes
     follow_redirects: yes
     status_code: 200
   register: gitlab_user_lookup_resp
   loop: "{{ gitlab_user_training_accounts_training_usernames }}"
   ignore_errors: yes
-#
-#- debug:
-#      var: gitlab_user_lookup_resp
+
+- debug:
+      var: gitlab_user_lookup_resp
 
 - name: Delete users prior to init
   uri:
-    url: "https://{{gitlab_host}}/api/v4/users/{{gitlab_user_lookup_resp.results[training_user_idx].json[0].id}}"
+    url: "http://{{gitlab_host}}/api/v4/users/{{gitlab_user_lookup_resp.results[training_user_idx].json[0].id}}?hard_delete=true"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
     method: DELETE
     validate_certs: False
     return_content: yes
-    force_basic_auth: yes
     follow_redirects: yes
     status_code: 204
   loop: "{{ gitlab_user_training_accounts_training_usernames }}"
@@ -52,7 +50,6 @@
     method: POST
     validate_certs: False
     return_content: yes
-    force_basic_auth: yes
     follow_redirects: yes
     body_format: json
     body: "{{ lookup('template', 'user.json') | to_json }}"
@@ -64,6 +61,37 @@
     index_var: training_user_idx
   ignore_errors: yes
 
+
 #- debug:
-#    var: gitlab_create_user_response.results
+#    var: gitlab_create_user_response
+
+- set_fact:
+    gitlab_new_users: "{{ gitlab_create_user_response | json_query('results[*].json') }}"
+
+#- debug:
+#    var: gitlab_new_users
+#
+
+- name: Add deployment keys to user accounts
+  uri:
+    url: "http://{{gitlab_host}}/api/v4/users/{{ item.id }}/keys"
+    headers:
+      Content-Type: application/json
+      PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
+    method: POST
+    validate_certs: False
+    return_content: yes
+    follow_redirects: yes
+    body_format: json
+    body: "{{ lookup('template', 'sshkey.json' ) | to_json }}"
+    status_code: 201
+  register: gitlab_user_sshkey_response
+  loop: "{{ gitlab_new_users }}"
+  ignore_errors: yes
+
+- set_fact:
+    gitlab_new_user_keys: "{{ gitlab_user_sshkey_response | json_query('results[*].json') }}"
+
+- debug:
+    var: gitlab_new_user_keys
 

@@ -4,10 +4,12 @@
 #
 # Assumptions:
 # This playbook assumes the gitlab server has already been configured using the
-# `../gitlab-playbooks/gitlab-server.plbk` playbook.
+# `../gitlab-playbooks/gitlab-server.plbk` playbook and keys have been generated for each
+# sandbox by the ../training-playbooks/user-sshkey-rotation.plbk.
 #
 # Varables:
-# `training_users`: comma delimited list of users to create
+# `user_usernames`: comma delimited list of users to create
+# `user_usernames`:
 #
 # Example invocation:
 # ansible-playbook -i inventory playbooks/gitlab-playbooks/populate-training-accounts.plbk
@@ -15,144 +17,19 @@
 
 - name: Init user accounts
   hosts: gitlab
+  gather_facts: true
 
-  roles:
-     - role: gitlab-user-training-accounts
-       delegate_to: localhost
-       vars:
-          gitlab_user_training_accounts_clear_user_data: True
-          gitlab_user_training_accounts_training_usernames: "{{ training_users.split(',') | list }}"
-##    - name: Look up user
-##      become: yes
-##      become_user: "{{ devops_linux_user }}"
-##      uri:
-##        url: "https://{{gitlab_host}}/api/v4/users?username={{item}}"
-##        headers:
-##          Content-Type: application/json
-##          PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
-##        method: DELETE
-##        validate_certs: False
-##        return_content: yes
-##        force_basic_auth: yes
-##        follow_redirects: yes
-##        status_code: 200
-##      register: gitlab_user_lookup_resp
-##      loop: "{{ training_users.split(',') | list }}"
-##      ignore_errors: yes
-##      tags:
-##        - gitlab
-##        - gitlab-server
-##        - gitlab-users
-##
-###    - name: delete users
-###      become: yes
-###      become_user: "{{ devops_linux_user }}"
-###      uri:
-###        url: "https://{{gitlab_host}}/api/v4/users/4"
-###        headers:
-###          Content-Type: application/json
-###          PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
-###        method: DELETE
-###        validate_certs: False
-###        return_content: yes
-###        force_basic_auth: yes
-###        follow_redirects: yes
-###        status_code: 204
-###      loop: "{{ training_users.split(',') | list }}"
-###      ignore_errors: yes
-###      tags:
-###        - gitlab
-###        - gitlab-server
-###        - gitlab-users
-##
-##    - name: adding users
-##      become: yes
-##      become_user: "{{ devops_linux_user }}"
-##      uri:
-##        url: "http://{{gitlab_host}}/api/v4/users"
-##        headers:
-##          Content-Type: application/json
-##          PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
-##          namespace_id: "root"
-##        method: POST
-##        validate_certs: False
-##        return_content: yes
-##        force_basic_auth: yes
-##        follow_redirects: yes
-##        body_format: json
-##        body: "{{ lookup('template', 'user.json') | to_json }}"
-##        status_code: 201
-##      register: gitlab_create_user_response
-##      when: gitlab_user_lookup_resp.results[training_user_idx].failed | bool
-##      loop: "{{ training_users.split(',') | list }}"
-##      loop_control:
-##        index_var: training_user_idx
-##      ignore_errors: yes
-##      tags:
-##        - gitlab
-##        - gitlab-server
-##        - gitlab-users
-##
-##    - debug:
-##        var: gitlab_create_user_response
-##
-##    - name: Get user impersonation token
-##      uri:
-##        url: "https://{{gitlab_host}}/api/v4/users/{{ item.json.id }}/impersonation_tokens"
-##        headers:
-##          Content-Type: application/json
-##          PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
-##        method: POST
-##        validate_certs: False
-##        return_content: yes
-##        force_basic_auth: yes
-##        follow_redirects: yes
-##        body_format: json
-##        body: "{{ lookup('template', 'token.json') | to_json }}"
-##        status_code: 201
-##      register: gitlab_user_impersonation_token_response
-##      loop: "{{ gitlab_create_user_response.results }}"
-##      loop_control:
-##        index_var: training_user_idx
-##        label: "{{ item.json.username }}"
-##      ignore_errors: yes
-##      tags:
-##        - gitlab
-##        - gitlab-server
-##        - gitlab-repos
-##        - gitlab-impersonation
-##
-##    - debug:
-##        var: gitlab_user_impersonation_token_response
-##
-##    - name: Adding repositories
-##      become: yes
-##      become_user: "{{ devops_linux_user }}"
-##      uri:
-##        url: "https://{{gitlab_host}}/api/v4/projects"
-##        headers:
-##          Content-Type: application/json
-##          PRIVATE-TOKEN: "{{ gitlab_user_impersonation_token_response.results[training_user_idx].token }}"
-##          namespace_id: "{{ item }}"
-##        method: POST
-##        validate_certs: False
-##        return_content: yes
-##        force_basic_auth: yes
-##        follow_redirects: yes
-##        body_format: json
-##        body: "{{ lookup('template', 'project.json') | to_json }}"
-##        status_code: 201
-##      register: gitlab_create_repository_response
-##      loop: "{{ training_users.split(',') | list }}"
-##      loop_control:
-##        index_var: training_user_idx
-##      ignore_errors: yes
-##      tags:
-##        - gitlab
-##        - gitlab-server
-##        - gitlab-repos
-##
-##    - debug:
-##        var: gitlab_create_repository_response
-#
-#
+  vars:
+    clear_user_data: True
+    user_usernames: "{{ training_users }}"
+
+  tasks:
+
+    - name: Add training accounts to Gitlab
+      include_role:
+        name: gitlab-user-training-accounts
+      vars:
+        gitlab_user_training_accounts_clear_user_data: "{{ clear_user_data }}"
+        gitlab_user_training_accounts_sshkey_base_dir: "{{ inventory_dir }}/keys/.ssh"
+        gitlab_user_training_accounts_training_usernames: "{{ user_usernames.split(',') | list }}"
+      delegate_to: localhost

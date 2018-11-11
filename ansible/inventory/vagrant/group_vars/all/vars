@@ -23,10 +23,10 @@ training_users: "training001"
 training_user_password: "{{ vault_training_user_password }}"
 
 # url of the gitlab instance. Uses the ssh host name if none are provided
-gitlab_host: "gitlab.training.agaveplatform.org"
+gitlab_host: "gitlab.sc18.training.agaveplatform.org"
 
 # url of the gitlab registry instance. Uses the ssh host name if none are provided
-gitlab_registry_host: "registry.training.agaveplatform.org"
+gitlab_registry_host: "registry.sc18.training.agaveplatform.org"
 
 swarm_overlay_network_name: "swarm-overlay"
 
@@ -35,3 +35,5 @@ gitlab_training_repository_name: "FUNWAVE-TVD"
 gitlab_training_repository_source: "https://github.com/fengyanshi/FUNWAVE-TVD"
 
 traefik_host_proxy_enable_acme: false
+
+jupyter_training_install_notebook_url: "https://raw.githubusercontent.com/agavetraining/sc18/master/INSTALL.ipynb"

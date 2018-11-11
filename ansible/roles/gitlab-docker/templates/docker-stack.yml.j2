@@ -116,7 +116,7 @@ services:
         protocol: tcp
         mode: host
       - target: 22
-        published: {{ gitlab_ssh_port }}
+        published: {{ gitlab_external_ssh_port }}
         protocol: tcp
         mode: host
     environment:
@@ -127,7 +127,7 @@ services:
       GITLAB_ROOT_PASSWORD: "{{ gitlab_root_password }}"
       GITLAB_HOST: "{{ gitlab_host }}"
       GITLAB_PORT: 80
-      GITLAB_SSH_PORT: "{{ gitlab_ssh_port }}"
+      GITLAB_SSH_PORT: "{{ gitlab_external_ssh_port }}"
       GITLAB_SIGNUP_ENABLED: "{{ gitlab_signup_enabled }}"
       GITLAB_HTTPS: "false"
       SSL_SELF_SIGNED: "true"
@@ -186,12 +186,14 @@ services:
           - "node.labels.gitlab==true"
       labels:
         - "traefik.enable=true"
-        - "traefik.backend=gitlab"
-        - "traefik.frontend.rule=Host:{{ gitlab_host }}"
-        - "traefik.frontend.passHostHeader=true"
         - "traefik.port=80"
         - "traefik.protocol=http"
+        - "traefik.backend.loadbalancer.swarm=true"
+        - "traefik.backend.loadbalancer.method=wrr"
         - "traefik.frontend.entryPoints=https,http"
+        - "traefik.frontend.passHostHeader=true"
+        - "traefik.backend=gitlab"
+        - "traefik.frontend.rule=Host:{{ gitlab_host }}"
       replicas: 1
       resources:
         limits:

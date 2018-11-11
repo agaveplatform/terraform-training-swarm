@@ -1,0 +1,5 @@
+{
+  "id": "{{ item.id }}",
+  "url": "https://{{ item.namespace.path }}.{{ training_base_url }}/jenkins/job/funwave-build-pipeline/build",
+  "push_events": true
+}

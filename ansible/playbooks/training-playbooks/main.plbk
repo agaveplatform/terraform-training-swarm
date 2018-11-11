@@ -12,11 +12,12 @@
 #
 # Example invocation:
 # ansible-playbook -i inventory playbooks/training-playbooks/main.plbk
-#
 
-- name: Gather facts
-  host: training_node
-  
-  roles:
-    - role: training_sandbox
-    - role: jupyter_stack
+- name: Ensure user training sandbox ssh keys are in place on all hosts
+  import_playbook: user-sshkey-rotation.plbk
+
+- name: Start the sandbox containers on each host and set up local volumes
+  import_playbook: sandbox.plbk
+
+- name: Start the swarm services for the user on each host and set up local volumes
+  import_playbook: jupyter.plbk

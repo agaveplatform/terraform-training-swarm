@@ -1,0 +1,47 @@
+# Default group variables for all the inventory in this group.
+# All sensitive information should be stored in a 'vault'
+# file within this same directory. The file should have
+# corresponding variable names prefixed with "vault_".
+#
+# The vault file will be decrypted at runtime by ansible-vault
+# and the vaules used to initialized this file. Any other
+# values can be overridden using Ansible's standard variable
+# precedence. For more information see the offical documentation:
+#
+# * http://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable
+# * http://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html#best-practices-for-variables-and-vaults
+#
+
+# Remote linux user where all configurations will be installed and
+# maintenance tasks run.
+devops_linux_user: agaveops
+
+# id of the event used to namespace the cluster and dns
+training_event: "sc18"
+
+# base of the wildcard domain that will be used to assign vanity domains
+training_base_url: "{{ training_event }}.training.agaveplatform.org"
+
+# comma-separated list of usernames for which to deploy custom training stacks
+training_users: "training001"
+
+# default password for training accounts.
+training_user_password: "{{ vault_training_user_password }}"
+
+# url of the gitlab instance. Uses the ssh host name if none are provided
+gitlab_host: "gitlab.{{ training_event }}.training.agaveplatform.org"
+
+# name of overlay network that will be used when building the swarm
+swarm_overlay_network_name: "swarm-overlay"
+
+# name to use for the training repository when installed in gitlab
+gitlab_training_repository_name: "FUNWAVE-TVD"
+
+# url of the git repo that will be imported into the gitlab instances.
+gitlab_training_repository_source: "https://github.com/fengyanshi/FUNWAVE-TVD"
+
+# Should top level ssl certs be deployed via acme?
+traefik_host_proxy_enable_acme: false
+
+# The installation notebook used to bootstrap the training notebooks on each host.
+jupyter_training_install_notebook_url: "https://raw.githubusercontent.com/agavetraining/sc18/master/INSTALL.ipynb"

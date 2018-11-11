@@ -1,0 +1,29 @@
+---
+# main.plbk
+# Run this playbook to deploy the training sandbox and services across the swarm.
+# Each user has their own node and full stack.
+#
+# Assumptions:
+# This playbook assumes the host has already been configured using the
+# `../host-playbooks/docker-host.plbk` playbook and keys have been generated for each
+# sandbox by the ../training-playbooks/user-sshkey-rotation.plbk.
+#
+# Varables:
+# `clean_host`: If true, the host will be shot with a clean base configuration 
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/training-playbooks/sandbox.plbk
+#
+
+# launch the sandbox on each training_node
+- name: Gather facts
+  hosts: training_node
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+  roles:
+    - role: training-sandbox
+      vars:
+        training_password: "{{ training_user_password }}"
+      tags:
+        - sandbox

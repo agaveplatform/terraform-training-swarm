@@ -30,6 +30,9 @@
     - traefik.toml.j2
   notify: restart traefik
 
+- name: Removing traefik Docker stack
+  command: docker stack rm traefik
+
 - name: Deploy traefik stack to the swarm
   command: docker stack deploy -c {{ traefik_deployment_dir }}/stack.yml traefik
   args:

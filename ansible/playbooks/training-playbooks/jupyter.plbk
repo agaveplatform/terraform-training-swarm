@@ -1,0 +1,31 @@
+---
+# main.plbk
+# Run this playbook to deploy the training sandbox and services across the swarm.
+# Each user has their own node and full stack.
+#
+# Assumptions:
+# This playbook assumes the host has already been configured using the following playbooks:
+# `../host-playbooks/docker-host.plbk` - host config
+# `../training-playbooks/user-sshkey-rotation.plbk` - ssh keys for each training user
+# `../training-playbooks/sandbox.plbk`keys - sandbox container and local networking
+#
+# Varables:
+#
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/training-playbooks/jupyter.plbk
+#
+
+# launch the Docker Swarm training service stack for each training node
+- name: Gather facts
+  hosts: training_node
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+
+  roles:
+    - role: jupyter-training-stack
+      vars:
+        training_password: "{{ training_user_password }}"
+      tags:
+        - jupyter
+        - jenkins

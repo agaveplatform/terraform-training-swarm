@@ -38,3 +38,4 @@ templates/traefik/ssl/pearc.training.agaveplatform.org.key
 /*.log
 *.log
 ansible/.vagrant
+ansible/inventory/*/keys

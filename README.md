@@ -1,6 +1,6 @@
 # Agave Terraform Training Swarm
 
-> Provisions and deploys scalable, configurable Agave training infrastructure on top of OpenStack and Docker Swarm. An isolated sandbox environment is created for each attendee with their own development server, Jupyter server, vanity public subdomain, and preconfigured client keys for the Agave Platform.
+> Provisions and deploys scalable, configurable Agave SciOps training infrastructure on top of OpenStack and Docker Swarm. An isolated sandbox environment is created for each attendee with their own linux development server, Jupyter server, Jenkins server, vanity public subdomain, build and test host accessible over ssh, and a shared Gitlab server.
 
 ## Overview  
 
@@ -55,36 +55,61 @@ export TF_HOME="$(pwd)/terraform-training-swarm"
 
 Finally, you will need to copy the public and private ssh keys you wish to use to connect to the VM into the `$TF_HOME/keys` directory. These will be copied to the remote host and used to connect for all subsequent remote actions to configure the host. While these keys _may_ be the same as the openstack keypair used to provision the host, they do not have to be. In fact, we recommend that they be different so you can independently rotate your deployment and provisioning keys as needed for your needs.
 
-## Usage example
+## Usage
 
 Before running the project you need to update the configuration with your own OpenStack auth credentials. These are provided by the _openrc.sh_ file you download from the OpenStack UI.
 
 > You can read more about how to obtain and source your openrc.sh file on the Jetstream cloud from the [Jetstream Wiki](https://iujetstream.atlassian.net/wiki/spaces/JWT/pages/39682064/Setting+up+openrc.sh).
 
-It is also recommended you customize your deployment by specify your own VM image, number of slaves, workers, attendees, etc. The best way to o this is to copy the `00-variables.tf` file to a file called `override.tf` and edit your variables there. Anything you change in the `override.tf` file will supercede the original values.
+It is also recommended you customize your deployment by specify your own VM image, number of slaves, workers, attendees, etc. The best way to do this is to edit the `terraform.tfvars` file. Values in this file will override the defaults in the `variables.tf` file. 
 
-> If you do not have a base image to use, please see the [Agave Image Builder](https://github.com/agaveplatform/packer-ansible) repository for a dead-simple way to build a quality base image to use for your Docker infrastructure on OpenStack.  
+> If you do not have a base image to use, please use the default Ubuntu 16.04 image available in your cloud or see the [Agave Image Builder](https://github.com/agaveplatform/packer-ansible) repository for a dead-simple way to build a quality base image to use for your Docker infrastructure on OpenStack.  
 
+Terraform is available as Both a Docker image and binary executable. If you are going to use Docker to run Terraform, set up the following alias, and add your openstack environment to a file, and the examples should all continue to work exactly the same as the native binary.
+
+```bash
+alias terraform='docker run -it --rm -w /data --env-file=$(pwd)/.openstack.env -v $(pwd):/data -v $(pwd)/keys:/keys:ro hashicorp/terraform:full'
+```  
+
+### Provisioning VMs
+
+To provision the Openstack instances that will host the cluster, run the Terraform plan.
 
 ```sh
 cd $TF_HOME
 
-# We will alias the Docker run command to make the rest a bit more readable.
-# If you installed natively installed Terraform, comment out this line.
-alias terraform='docker run -it --rm -w /data -v $(pwd):/data -v $(pwd)/keys:/keys:ro hashicorp/terraform:full'
+# source your openstackrc file to load your auth credentials to openstack into your environment.
+. ~/.openstack/openstackrc
 
-# init your terraform environment. By bind-mounting our repository directory
+# if you are running in Docker, uncomment the following line to copy your openstack environment into a file that can be loaded into the Docker container.
+#env | grep "OS_" > .openstack.env
+
+# init your terraform environment.
 terraform init
 
 # review the changes that will be made when you run the action plan.
 terraform plan
 
 # run the plan and deploy the swarm. We explicitly restrict parallelism to 3 concurrent tasks as the default of 10 tends to make Jetstream sad at us.
-terraform apply -parallelism=3
-
-# tear it all down
-terraform destroy -parallelism=3
+terraform apply
 ```
+
+### Deploying the training swarm
+
+Once the VMs are in plae, run the ansible playbooks against the cluster to configure it. A terraform.py script is included that will read your terraform state file and create a valid dynamic inventory that Ansible will use to configure and deploy the cluster on the instances Terraform provisioned.
+
+```bash
+cd ansible
+ansible-playbook -i inventory/   
+## Tearing down the cluster
+
+To destroy the cluster, run the following command. Terraform will clean up all the instances, networks, security groups, etc that it creates.
+
+```bash
+# tear it all down
+terraform destroy
+```  
+
 
 For more information on Terraform an its usage, please see the [official documentation](https://www.terraform.io/docs/index.html).
 
@@ -95,15 +120,7 @@ Development is identical to production. Simply edit the templates and variables 
 ## Roadmap
 
 * Add NFS mount to training nodes to persist data volumes across deployments into the platform's default storage.
-* Add optional notebook folder and add contents into each training environment.
-* Generate Agave auth token for each training node upon deployment and invalidate upon teardown.
-* Generate Agave client keys for each training node and clean up upon teardown.
-
-
-## Release History
-
-* 0.0.1
-    * Work in progress
+* Move from swarm to kubernetes to enable larger training clusters (>256) without requiring network partitioning or external load balancers. 
 
 ## Meta
 

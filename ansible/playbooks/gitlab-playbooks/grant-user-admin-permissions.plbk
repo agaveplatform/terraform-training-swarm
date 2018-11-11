@@ -8,7 +8,7 @@
 # `revoke_permission`: should admin be revoked rather than granted. Default: False
 #
 # Example invocation:
-# ansible-playbook -i inventory playbooks/gitlab-playbooks/grant-user-admin-permissions.plbk -e user_username=jdoe,bsmith,ssmith
+# ansible-playbook -i inventory playbooks/gitlab-playbooks/grant-user-admin-permissions.plbk -e user_usernames=jdoe,bsmith,ssmith
 
 - hosts: gitlab
   become: yes

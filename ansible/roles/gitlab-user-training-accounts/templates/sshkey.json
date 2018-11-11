@@ -1,0 +1,4 @@
+{
+  "title": "sandbox",
+  "key": "{{ lookup('file', gitlab_user_training_accounts_sshkey_base_dir + '/' + item.username + '/' + gitlab_user_training_accounts_ssh_public_key_name ) }}"
+}

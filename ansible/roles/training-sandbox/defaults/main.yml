@@ -1,0 +1,41 @@
+---
+
+# external name of the swarm network to join. Should be created by the swarm
+# master prior to this running
+docker_swarm_overlay_network_name: "swarm-overlay"
+
+
+# Agave parameters
+# training account username
+training_username: "{{ hostvars[inventory_hostname]['training_user'] }}"
+# trainning account password
+training_password: "password"
+# agave tenant to use
+training_agave_tenant_id: "sandbox"
+# custom url of the agave tenant to use if not in the public discovery service
+training_agave_tenants_api_baseurl: "https://sandbox.agaveplatform.org"
+# training event name used to tag the containers
+training_event: "sc18"
+
+# Base url for the wildcard dns entries used in the swarm's reverse proxy
+training_base_url: "{{training_event}}.training.agaveplatform.org"
+
+# public hostname of the vm
+training_sandbox_vm_hostname: "{{ training_username }}.{{ training_base_url }}"
+# public ip address if the host
+training_sandbox_vm_ip_address: "{{ hostvars[inventory_hostname]['ansible_ssh_host'] }}"
+# sandbox server image to deploy
+training_sandbox_image: "agaveplatform/training-sandbox:latest"
+
+# deployment path on remote host
+training_sandbox_deployment_dir: "/home/{{devops_linux_user}}/training-sandbox/{{ training_username }}"
+# where to copy the sandbox keys on the remote host.
+training_sandbox_sshkey_dir: "/home/{{devops_linux_user}}/sshkey/{{ training_username }}"
+# Where are the sandbox keys stored on local disk. The whole folder
+# will be uploaded to the remote host and used for ssh between containers.
+training_local_sshkey_dir: "{{ inventory_dir }}/keys/.ssh/{{ training_username }}"
+
+# should ngrok be started (for use when running without a public ip)
+training_standbox_enable_ngrok: False
+# api key for ngrok
+training_standbox_ngrok_key: ''

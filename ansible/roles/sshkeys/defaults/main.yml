@@ -1,0 +1,52 @@
+#
+#  Copyright 2015 VMware, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+---
+
+# User that should own ssh keys on the local side
+sshkeys_local_user: "{{ lookup('env', 'USER') }}"
+#sshkeys_local_group: "{{ sshkeys_local_user }}"
+
+# User on the remote hosts, we'll ssh in as
+sshkeys_remote_user: "{{ ansible_ssh_user }}"
+sshkeys_remote_group: "{{ ansible_ssh_user }}"
+
+# Local and Remote ssh config directories to store
+# keys and authorized_keys files in
+sshkeys_local_dir: "~{{ sshkeys_local_user | dirname }}/.ssh"
+sshkeys_remote_dir: "~{{ sshkeys_remote_user | dirname }}/.ssh"
+
+# Temporary holding for the keys
+sshkeys_local_priv_key: "{{ sshkeys_local_dir }}/ansible_sshkey"
+sshkeys_local_pub_key: "{{ sshkeys_local_priv_key }}.pub"
+
+# Once keys have been distributed, the newly created key
+# will be put here, and you can use this file to ssh in passwordless.
+sshkeys_local_final_priv_key: "{{ sshkeys_local_dir }}/ansible_role_test_key"
+sshkeys_local_final_pub_key: "{{ sshkeys_local_final_priv_key }}.pub"
+
+# Should the local authorized hosts file be updated?
+# Don't enable this unless using this for single host key rotation
+sshkeys_update_local_authorized_keys: False
+# Should we update the authorized_keys on the remote host?
+sshkeys_update_remote_authorized_keys: False
+
+# Should all public keys on the remote host be removed save for the new public key?
+# Generally not desired for ops.
+sshkeys_remote_authorized_keys_exclusive: False
+
+# Should all public keys on the local host be removed save for the new public key?
+# Generally not desired unless a custom path is used.
+sshkeys_local_authorized_keys_exclusive: False

@@ -14,7 +14,7 @@
 - name: Generate CSR
   command: openssl req \
     -new \
-    -subj "/C=US/ST=Virginia/L=Reston/O=DSRA/CN={{service_hostname}}" \
+    -subj "/C=US/ST=Texas/L=Austin/O=Agave/CN=*.{{service_hostname}}" \
     -key "{{cert_deployment_dir}}/{{ service_hostname }}.key" \
     -out "{{cert_deployment_dir}}/{{ service_hostname }}.csr"
   args:

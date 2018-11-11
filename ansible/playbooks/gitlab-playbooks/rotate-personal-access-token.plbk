@@ -19,12 +19,6 @@
 
   tasks:
 
-#    - name: Generating new personal access token
-#      set_fact:
-#        user_personal_access_token: "{{ 99999999 | random | to_uuid }}"
-#      when: user_personal_access_token == ''
-#
-
     - name: Rotate the user personal access token
       import_role:
         name: gitlab-personal-access-token

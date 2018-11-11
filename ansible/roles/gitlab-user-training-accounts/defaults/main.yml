@@ -6,3 +6,10 @@ gitlab_user_training_accounts_training_usernames: []
 
 # True if the user accounts should be deleted before running
 gitlab_user_training_accounts_clear_user_data: True
+
+# Directory in which the user's deployment keys can be found
+# It is expected that the user keys will show up in a file
+gitlab_user_training_accounts_sshkey_base_dir: "{{ inventory_dir }}/keys/.ssh/"
+
+# Name of the user's public key
+gitlab_user_training_accounts_ssh_public_key_name: "ansible_role_test_key.pub"

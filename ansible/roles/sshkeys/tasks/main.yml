@@ -1,0 +1,131 @@
+#
+#  Copyright 2015 VMware, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+---
+- name: Create .ssh directory on ansible host
+  file:
+    path: "{{ sshkeys_local_dir }}"
+    state: directory
+    mode: 0700
+    owner: "{{ sshkeys_local_user }}"
+  become: False
+  delegate_to: localhost
+  run_once: True
+
+- name: Create .ssh directory on remote host
+  file:
+    path: "{{ sshkeys_remote_dir }}"
+    state: directory
+    mode: 0700
+    owner: "{{ sshkeys_remote_user }}"
+    group: "{{ sshkeys_remote_group }}"
+
+
+- name: Check for existing local known_hosts
+  stat:
+    path: "{{ sshkeys_local_dir }}/known_hosts"
+  register: sshkeys_known_hosts
+  become: False
+  delegate_to: localhost
+  run_once: True
+
+
+- name: Assure known_hosts file exists to reduce superfluous logs
+  file:
+    path: "{{ sshkeys_local_dir }}/known_hosts"
+    state: touch
+    mode: 0644
+    owner: "{{ sshkeys_local_user }}"
+  when: sshkeys_known_hosts.stat.exists is defined and not sshkeys_known_hosts.stat.exists
+  become: False
+  delegate_to: localhost
+  run_once: True
+
+- name: Remove previous key creations
+  file:
+    dest: "{{ item }}"
+    state: absent
+  become: False
+  delegate_to: localhost
+  ignore_errors: True
+  run_once: True
+  with_items:
+    - "{{ sshkeys_local_priv_key }}"
+    - "{{ sshkeys_local_pub_key }}"
+
+- name: Create new ssh key-pair
+  command: ssh-keygen -t rsa -N "" -C "ansible role sshkeys" -q -f "{{ sshkeys_local_priv_key }}"
+  become: False
+  delegate_to: localhost
+  run_once: True
+  tags:
+    - skip_ansible_lint
+
+- name: Set ownership of new key
+  file:
+    dest: "{{ item }}"
+    state: file
+    mode: 0600
+    owner: "{{ sshkeys_local_user }}"
+  become: False
+  delegate_to: localhost
+  run_once: True
+  with_items:
+    - "{{ sshkeys_local_priv_key }}"
+    - "{{ sshkeys_local_pub_key }}"
+
+- name: Add new public key to remote authorized_keys file
+  authorized_key:
+    key: "{{ lookup('file', sshkeys_local_pub_key) }}"
+    user: "{{ sshkeys_remote_user }}"
+    state: present
+    path: "{{ sshkeys_remote_dir }}/authorized_keys"
+    exclusive: "{{ sshkeys_remote_authorized_keys_exclusive | bool }}"
+  when: sshkeys_update_remote_authorized_keys|bool
+
+- name: Add new public key to local authorized_keys file
+  authorized_key:
+    key: "{{ lookup('file', sshkeys_local_pub_key) }}"
+    user: "{{ sshkeys_local_user  }}"
+    state: present
+    path: "{{ sshkeys_local_dir }}/authorized_keys"
+    exclusive: "{{ sshkeys_local_authorized_keys_exclusive | bool }}"
+  become: False
+  delegate_to: localhost
+  run_once: True
+  when: sshkeys_update_local_authorized_keys|bool
+
+- name: Use the new key for future connects
+  set_fact:
+    ansible_private_ssh_key: sshkeys_local_priv_key
+  tags:
+    - skip_ansible_lint
+
+
+- name: Move new private key into place
+  command: mv {{ sshkeys_local_priv_key }} "{{ sshkeys_local_final_priv_key }}"
+  become: False
+  delegate_to: localhost
+  run_once: True
+  tags:
+    - skip_ansible_lint
+
+- name: Move new public key into place
+  command: mv {{ sshkeys_local_pub_key }} "{{ sshkeys_local_final_pub_key }}"
+  become: False
+  delegate_to: localhost
+  run_once: True
+  tags:
+    - skip_ansible_lint

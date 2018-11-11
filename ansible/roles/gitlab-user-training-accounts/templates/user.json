@@ -2,7 +2,5 @@
   "name": "{{ item }}",
   "username": "{{ item }}",
   "password": "{{ training_user_password }}",
-  "email": "{{ item }}@example.com",
-  "sshkey_name": "sandbox",
-  "sshkey_file": "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+  "email": "{{ item }}@example.com"
 }

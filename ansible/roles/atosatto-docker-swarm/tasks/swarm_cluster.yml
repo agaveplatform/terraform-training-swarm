@@ -1,0 +1,136 @@
+---
+
+- set_fact:
+    docker_swarm_labels: "{{ hostvars[inventory_hostname]['swarm_labels'] }}"
+  when:
+    - "hostvars[inventory_hostname]['swarm_labels'] is defined"
+    - "hostvars[inventory_hostname]['swarm_labels'] is iterable"
+    - "hostvars[inventory_hostname]['swarm_labels'] is not string"
+  tags:
+  - docker
+  - node
+  - labels
+
+- set_fact:
+    docker_swarm_labels: "{{ hostvars[inventory_hostname]['swarm_labels'].split(',') }}"
+  when:
+    - "hostvars[inventory_hostname]['swarm_labels'] is defined"
+    - "hostvars[inventory_hostname]['swarm_labels'] is not iterable"
+    - "hostvars[inventory_hostname]['swarm_labels'] is string"
+  tags:
+  - docker
+  - node
+  - labels
+
+- name: Check if "Swarm Mode" is enabled.
+  shell: docker info
+  changed_when: False
+  register: docker_info
+  tags:
+    - skip_ansible_lint # Suppressing the linter
+
+- name: Init "Swarm Mode" on the first manager.
+  docker_swarm:
+    state: present
+    advertise_addr: "{{ docker_swarm_addr }}"
+    listen_addr: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+  environment:
+    DOCKER_API_VERSION: 1.24
+  register: docker_swarm_init_response
+  when:
+    - "docker_info.stdout.find('Swarm: active') == -1"
+    - "inventory_hostname == groups['leader_node'][0]"
+  tags:
+    - skip_ansible_lint # Suppressing the linter
+
+- name: Get the worker join-token.
+  shell: docker swarm join-token -q worker
+  changed_when: False
+  register: docker_worker_token
+  delegate_to: "{{ groups['leader_node'][0] }}"
+  delegate_facts: True
+  when: "'docker_swarm_worker' in group_names"
+  tags:
+    - skip_ansible_lint # Suppressing the linter
+
+- name: Get the manager join-token.
+  shell: docker swarm join-token -q manager
+  changed_when: False
+  register: docker_manager_token
+  delegate_to: "{{ groups['leader_node'][0] }}"
+  delegate_facts: True
+  when:
+    - "'docker_swarm_manager' in group_names"
+    - "inventory_hostname != groups['leader_node'][0]"
+  tags:
+    - skip_ansible_lint # Suppressing the linter
+
+- name: Declare the address of the first Swarm manager as a fact.
+  set_fact:
+    docker_manager_address: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+  when: "inventory_hostname == groups['leader_node'][0]"
+
+- name: Distribute the fact containing address of the first Swarm manager.
+  set_fact:
+    docker_manager_address: "{{ hostvars[groups['leader_node'][0]]['docker_manager_address'] }}"
+  when:
+    - docker_manager_address is not defined
+    - "inventory_hostname != groups['leader_node'][0]"
+
+- name: Join the pending Swarm worker nodes
+  docker_swarm:
+    state: join
+#    listen_addr: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+    advertise_addr: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+    join_token: "{{ docker_worker_token.stdout }}"
+    remote_addrs: "{{ docker_manager_address }}"
+#    labels: "{{ dict(( ('swarm_labels' in hostvars[inventory_hostname]) | ternary(hostvars[inventory_hostname]['swarm_labels'], '') ).split(',') | list )  }}"
+  register: docker_swarm_join_response
+  environment:
+    DOCKER_API_VERSION: 1.24
+  when:
+    - "docker_info.stdout.find('Swarm: active') == -1"
+    - "docker_info.stdout.find('Swarm: pending') == -1"
+    - "'docker_swarm_worker' in group_names"
+  tags:
+    - skip_ansible_lint # Suppressing the linter
+
+- name: Join the pending Swarm manager nodes.
+  docker_swarm:
+    state: join
+#    listen_addr: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+    advertise_addr: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+    join_token: "{{ docker_manager_token.stdout }}"
+    remote_addrs: "{{ docker_manager_address }}"
+#    labels: "{{ dict( ( ('swarm_labels' in hostvars[inventory_hostname]) | ternary(hostvars[inventory_hostname]['swarm_labels'], '') ).split(',') | list ) }}"
+  register: docker_swarm_join_response
+  environment:
+    DOCKER_API_VERSION: 1.24
+  when:
+    - "docker_info.stdout.find('Swarm: active') == -1"
+    - "docker_info.stdout.find('Swarm: pending') == -1"
+    - "'docker_swarm_manager' in group_names"
+    - "inventory_hostname != groups['leader_node'][0]"
+  tags:
+    - skip_ansible_lint # Suppressing the linter
+
+#- assert:
+#    that:
+#      - "'actions' not in docker_swarm_join_response"
+#    msg: "Node {{ inventory_hostname }} was not added to the swarm"
+#  when: "docker_swarm_join_response is defined"
+#
+
+- name: Apply custom node labels
+  delegate_to: "{{ groups['leader_node'][0] }}"
+  delegate_facts: True
+  command: docker node update --label-add '{{item}}=true' {{ inventory_hostname }}
+  loop: "{{ docker_swarm_labels }}"
+  when:
+    - "docker_swarm_labels is defined"
+  tags:
+    - docker
+    - node
+    - labels
+
+

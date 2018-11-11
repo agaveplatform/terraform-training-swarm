@@ -2,8 +2,6 @@
 ---
 
 - name: Create GitLab data, log, and cert folders on the host.
-  become: yes
-  become_user: root
   file:
     path: "{{ item }}"
     state: directory
@@ -15,10 +13,9 @@
     - "{{ gitlab_cert_dir }}"
     - "{{ gitlab_data_dir }}"
     - "{{ gitlab_registry_data_dir }}"
+    - "{{ gitlab_registry_data_dir }}"
 
 - name: Create GitLab data, log, and cert folders on the host.
-  become: yes
-  become_user: root
   file:
     path: "{{ gitlab_log_dir }}"
     state: directory
@@ -92,6 +89,9 @@
   wait_for:
     host: "{{ gitlab_host | default(hostvars[groups['worker_node'][0]]['ansible_ssh_host']) }}"
     port: 30180
+    msg: Timeout waiting for gitlab server to come online
+    timeout: 1000
+
 
 #- name: Resetting root user personal access token
 #  import_tasks: set-user-personal-access-token.yml

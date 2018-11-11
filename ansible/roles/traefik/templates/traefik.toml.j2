@@ -1,11 +1,12 @@
+# Ansible generated config file for traefik
+{% if traefik_debug|bool %}
+logLevel = "DEBUG"
+{% else %}
 [traefikLog]
   filePath = "/logs/traefik.log"
 
 [accessLog]
   filePath = "/logs/access.log"
-
-{% if traefik_debug|bool %}
-logLevel = "DEBUG"
 {% endif %}
 
 defaultEntryPoints = ["http","https"]
@@ -26,12 +27,14 @@ address = ":28443"
 CertFile = "/ssl/{{traefik_hostname}}.crt"
 KeyFile = "/ssl/{{traefik_hostname}}.key"
 
-[web.metrics.prometheus]
+{#[web.metrics.prometheus]#}
 
 [docker]
 swarmmode = true
 watch = true
+{#network = "{{ swarm_overlay_network_name }}"#}
 domain = "{{ traefik_hostname }}"
+{#exposedByDefault = false#}
 
 {% if traefik_acme_enabled|bool %}
 
@@ -54,9 +57,7 @@ main = "*.{{ traefik_hostname }}"
 sans = ["{{ traefik_hostname }}"]
 {% else %}
 main = "{{ traefik_hostname }}"
-sans = {{ traefik_acme_sans | to_json }}
+sans = ["gitlab","{{ traefik_acme_sans | join('","') }}"]
 {% endif %}
-[[acme.domains]]
-main = "gitlab.{{ traefik_hostname }}"
 
 {% endif %}

@@ -1,0 +1,79 @@
+---
+# Starts sandbox container on training host using docker compose.
+
+- name: "Create sandbox deployment folder for {{ training_username }}"
+  become: yes
+  become_user: root
+  file:
+    path: "{{ training_sandbox_deployment_dir }}"
+    state: directory
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+
+- name: "Create sandbox ssh key deployment folder for {{ training_username }}"
+  become: yes
+  become_user: root
+  file:
+    path: "{{ training_sandbox_sshkey_dir }}"
+    state: directory
+    mode: 0700
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+
+- name: "Upload sandbox files for {{ training_username }}"
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ training_sandbox_deployment_dir }}/docker-compose.yml"
+
+- name: "Upload sandbox files for {{ training_username }}"
+  become: yes
+  become_user: root
+  template:
+    src: ssh.config.j2
+    dest: "{{ training_sandbox_sshkey_dir }}/config"
+    mode: 0600
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+    force: true
+
+# copy in keys. they ra
+- name: "Upload ssh keys folder for {{ training_username }}"
+  become: yes
+  become_user: root
+  copy:
+    src: "{{ training_local_sshkey_dir }}/{{ item.src }}"
+    dest: "{{ training_sandbox_sshkey_dir }}/{{ item.dest }}"
+    mode: "{{ item.mode }}"
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+    force: true
+  loop:
+    - { src: "ansible_role_test_key", dest: "id_rsa", mode: "0600" }
+    - { src: "ansible_role_test_key.pub", dest: "id_rsa.pub", mode: "0600" }
+    - { src: "authorized_keys", dest: "authorized_keys", mode: "0600" }
+    - { src: "known_hosts", dest: "known_hosts", mode: "0644" }
+
+- name: "Ensure Docker training volume is present as a host volume before starting the sandbox for {{ training_username }}"
+  docker_volume:
+    name: "{{training_username}}-training-volume"
+    state: present
+    force: no
+
+- name: "Start sandbox containers for {{ training_username }}"
+  shell: docker-compose -f {{ training_sandbox_deployment_dir }}/docker-compose.yml down
+  args:
+    chdir: "{{ training_sandbox_deployment_dir }}"
+  environment:
+    COMPOSE_HTTP_TIMEOUT: 5000
+
+- name: "Start sandbox containers for {{ training_username }}"
+  shell: docker-compose -f {{ training_sandbox_deployment_dir }}/docker-compose.yml up -d
+  args:
+    chdir: "{{ training_sandbox_deployment_dir }}"
+  environment:
+    COMPOSE_HTTP_TIMEOUT: 5000
+
+- name: "Update  {{ training_username }}"
+  shell: docker-compose -f {{ training_sandbox_deployment_dir }}/docker-compose.yml exec -T {{training_username}}-sandbox chown -R jovyan:jovyan /home/jovyan/.ssh
+  args:
+    chdir: "{{ training_sandbox_deployment_dir }}"

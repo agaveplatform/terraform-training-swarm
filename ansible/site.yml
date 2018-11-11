@@ -1,7 +1,28 @@
 ---
-# file: site.yml
-- import_plays: playbooks/host-playbooks/main.yml
-- import_plays: playbooks/swarm-playbooks/main.yml
-- import_plays: playbooks/proxy-playbooks/traefik.yml
-- import_plays: playbooks/gitlab-playbooks/main.yml
-- import_plays: playbooks/training-playbooks/main.yml
+# site.yml
+# Run this playbook to provision the entire training swarm on a given inventory file.
+#
+# Assumptions:
+# This playbook assumes the hosts have been provisioned with the terraform provisioner
+# prior to this.
+#
+# Varables:
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/site.plbk
+#
+
+- name: Applying baseline host configs to all hosts
+  import_playbook: playbooks/host-playbooks/main.plbk
+
+- name: Build Docker swarm across inventory
+  import_playbook: playbooks/swarm-playbooks/main.plbk
+
+- name: Deploy traefik reverse proxy as ingress controller for web traffic to jupyter notebooks
+  import_playbook: playbooks/proxy-playbooks/traefik.plbk
+
+- name: Deploy training stacks, sandboxes, and keys for each user
+  import_playbook: playbooks/training-playbooks/main.plbk
+
+- name: Deploy gitlab server and configure for all host
+  import_playbook: playbooks/gitlab-playbooks/main.plbk

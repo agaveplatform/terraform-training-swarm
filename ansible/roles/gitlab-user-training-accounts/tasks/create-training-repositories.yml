@@ -1,0 +1,101 @@
+---
+# Creates repositiores for each user. An impersonation token is first created, then
+# used to generate the user repo.
+
+- debug:
+    msg: "{{ gitlab_new_users }}"
+
+- name: Get impersonation token for each user
+  uri:
+    url: "http://{{gitlab_host}}/api/v4/users/{{ item.id }}/impersonation_tokens"
+    headers:
+      Content-Type: application/json
+      PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
+    method: POST
+    validate_certs: False
+    return_content: yes
+    force_basic_auth: yes
+    follow_redirects: yes
+    body_format: json
+    body: "{{ lookup('template', 'token.json') | to_json }}"
+    status_code: 201
+  register: gitlab_user_impersonation_token_response
+  loop: "{{ gitlab_new_users }}"
+  ignore_errors: yes
+
+#- debug:
+#    var: gitlab_user_impersonation_token_response
+
+- set_fact:
+      gitlab_new_users_impersonation_tokens: "{{ gitlab_user_impersonation_token_response | json_query('results[*].json') }}"
+
+- debug:
+    var: gitlab_new_users_impersonation_tokens
+
+
+- name: Adding user project based on importing training repository
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+  uri:
+    url: "http://{{gitlab_host}}/api/v4/projects"
+    headers:
+      Content-Type: application/json
+      PRIVATE-TOKEN: "{{ item.token }}"
+      namespace_id: "{{ item.name }}"
+    method: POST
+    validate_certs: False
+    return_content: yes
+    follow_redirects: yes
+    body_format: json
+    body: "{{ lookup('template', 'project.json') | to_json }}"
+    status_code: 201
+  register: gitlab_create_repository_response
+  loop: "{{ gitlab_new_users_impersonation_tokens }}"
+  loop_control:
+    index_var: training_user_idx
+  ignore_errors: yes
+
+- debug:
+    var: gitlab_create_repository_response
+
+- name: Adding git push webhooks to user projects
+  become: yes
+  become_user: "{{ devops_linux_user }}"
+  uri:
+    url: "http://{{gitlab_host}}/api/v4/projects/{{item.id}}/hooks"
+    headers:
+      Content-Type: application/json
+      PRIVATE-TOKEN: "{{ gitlab_new_users_impersonation_tokens[training_user_idx].token }}"
+      namespace_id: "{{ gitlab_new_users_impersonation_tokens[training_user_idx].name }}"
+    method: POST
+    validate_certs: False
+    return_content: yes
+    follow_redirects: yes
+    body_format: json
+    body: "{{ lookup('template', 'hook.json') | to_json }}"
+    status_code: 201
+  register: gitlab_create_repository_webhook_response
+  loop: "{{ gitlab_create_repository_response | json_query('results[*].json') }}"
+  loop_control:
+    index_var: training_user_idx
+  ignore_errors: yes
+
+- debug:
+    var: "gitlab_create_repository_webhook_response | json_query('results[*].json')"
+
+- name: Delete impersonation token for each user
+  uri:
+    url: "http://{{gitlab_host}}/api/v4/users/{{ item.id }}/impersonation_tokens/{{ gitlab_new_users_impersonation_tokens[training_user_idx].id }}"
+    headers:
+      Content-Type: application/json
+      PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
+    method: DELETE
+    validate_certs: False
+    return_content: yes
+    follow_redirects: yes
+    status_code: 204
+  register: gitlab_user_impersonation_token_response
+  loop: "{{ gitlab_new_users }}"
+  loop_control:
+    index_var: training_user_idx
+  ignore_errors: yes

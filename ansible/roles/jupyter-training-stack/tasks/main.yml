@@ -1,0 +1,64 @@
+---
+# Deploys service stack definitions for each users, sets up user directories and secrets,
+# copys ssh keys, create ssh configs, and deploys stacks
+
+- name: "Create deployment folders on sandbox host for {{ training_username }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+  loop:
+    - "{{ jupyter_training_stack_deployment_dir }}/jenkins/jobs/funwave-benchmark-pipeline"
+    - "{{ jupyter_training_stack_deployment_dir }}/jenkins/jobs/funwave-build-pipeline"
+
+- name: "Upload training stack jenkins files to sandbox host for {{ training_username }}"
+  template:
+    src: "{{ item }}"
+    dest: "{{ jupyter_training_stack_deployment_dir }}/{{ item }}"
+  loop:
+    - jenkins/credentials.xml
+    - jenkins/scriptApproval.xml
+    - jenkins/jobs/funwave-benchmark-pipeline/config.xml
+    - jenkins/jobs/funwave-build-pipeline/config.xml
+
+- name: "Create deployment folders on swarm master host for {{ training_username }}"
+  file:
+    path: "{{ jupyter_training_stack_deployment_dir }}"
+    state: directory
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+  delegate_to: "{{ groups['leader_node'][0] }}"
+
+- name: "Upload training stack files on swarm master host for {{ training_username }}"
+  template:
+    src: jupyter.stack.yml.j2
+    dest: "{{ jupyter_training_stack_deployment_dir }}/stack.yml"
+  delegate_to: "{{ groups['leader_node'][0] }}"
+
+- name: "Download training install notebook from the training repository for {{ training_username }}"
+  get_url:
+    url: "{{ jupyter_training_install_notebook_url }}"
+    dest: "{{ jupyter_training_stack_deployment_dir }}/INSTALL.ipynb"
+    owner: "{{ devops_linux_user }}"
+    group: "{{ devops_linux_user }}"
+    validate_certs: no
+
+- name: "Check training stack is currently deployed for {{ training_username }}"
+  shell: docker stack ls
+  register: docker_stack_ls_result
+  delegate_to: "{{ groups['leader_node'][0] }}"
+
+- name: "Stop the current training stack for {{ training_username }}"
+  shell: docker stack rm {{ training_username }}_training
+  args:
+    chdir: "{{ jupyter_training_stack_deployment_dir }}"
+  when:
+    - (training_username + '_training ') in docker_stack_ls_result.stdout
+  delegate_to: "{{ groups['leader_node'][0] }}"
+
+- name: "Deploy the stack to the swarm for {{ training_username }}"
+  shell: docker stack deploy -c {{ jupyter_training_stack_deployment_dir }}/stack.yml {{ training_username }}_training
+  args:
+    chdir: "{{ jupyter_training_stack_deployment_dir }}"
+  delegate_to: "{{ groups['leader_node'][0] }}"

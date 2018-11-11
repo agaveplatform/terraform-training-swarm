@@ -1,7 +1,7 @@
 ---
 
 # version of docker compose to install. The os and architecture will be discovered at runtime
-docker_compose_version: 1.21.1
+docker_compose_version: 1.23.1
 
 # should compose be updated
 update_docker_compose_version: true

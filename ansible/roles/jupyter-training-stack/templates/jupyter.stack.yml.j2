@@ -1,0 +1,150 @@
+version: '3.7'
+
+networks:
+  {{training_username}}-training:
+  swarm_overlay:
+    external: true
+    name: {{docker_swarm_overlay_network_name}}
+
+volumes:
+  {{training_username}}-training-volume:
+    external: true
+    name: {{training_username}}-training-volume
+
+services:
+
+  {{training_username}}:
+    image: "{{jupyter_training_stack_jupyter_image}}"
+    hostname: {{training_sandbox_vm_hostname}}
+    environment:
+      - GRANT_SUDO=yes
+      - VM_MACHINE={{training_sandbox_vm_hostname}}
+      - VM_IPADDRESS={{training_sandbox_vm_ip_address}}
+      - VM_HOSTNAME={{training_sandbox_vm_hostname}}
+      - USE_TUNNEL=False
+      - ENVIRONMENT=training
+      - SCRATCH_DIR=/home/jovyan
+      - MACHINE_USERNAME=jovyan
+      - MACHINE_IP={{training_sandbox_vm_ip_address}}
+      - MACHINE_NAME={{training_username}}
+      - MACHINE_PORT=10022
+      - DOCKERHUB_NAME=stevenrbrandt
+      - AGAVE_APP_DEPLOYMENT_PATH=agave-deployment
+      - AGAVE_CACHE_DIR=/home/jovyan/work/.{{training_agave_tenant_id}}
+      - AGAVE_JSON_PARSER=jq
+      - AGAVE_SYSTEM_SITE_DOMAIN=localhost
+      - AGAVE_TENANT={{training_agave_tenant_id}}
+      - AGAVE_TENANTS_API_BASEURL={{training_agave_tenants_api_baseurl}}
+      - AGAVE_USERNAME={{training_username}}
+      - AGAVE_PASSWORD={{training_password}}
+      - AGAVE_SYSTEM_HOST={{training_sandbox_vm_ip_address}}
+      - AGAVE_SYSTEM_PORT=10022
+      - AGAVE_SYSTEM_SITE_DOMAIN=jetstream-cloud.org
+      - AGAVE_STORAGE_WORK_DIR=/home/jovyan
+      - AGAVE_STORAGE_HOME_DIR=/home/jovyan
+      - AGAVE_APP_NAME=funwave-tvd-{{training_event}}-{{training_username}}
+      - AGAVE_STORAGE_SYSTEM_ID={{training_event}}-storage-{{training_username}}
+      - AGAVE_EXECUTION_SYSTEM_ID={{training_event}}-exec-{{training_username}}
+    volumes:
+      - {{training_username}}-training-volume:/home/jovyan/work
+      - {{jupyter_training_stack_sshkey_dir}}:/home/jovyan/.ssh
+      - {{ jupyter_training_stack_deployment_dir }}/INSTALL.ipynb:/home/jovyan/INSTALL.ipynb
+    networks:
+      - swarm_overlay
+      - {{training_username}}-training
+    ports:
+      - "8888:8888"
+    deploy:
+      placement:
+        constraints:
+          - "node.labels.{{training_username}} == true"
+          - "node.labels.training_node == true"
+      labels:
+        - "traefik.enable=true"
+        - "training.name={{training_event}}"
+        - "training.user={{training_username}}"
+        - "environment=training"
+        - "traefik.port=8888"
+        - "traefik.protocol=http"
+        - "traefik.frontend.entryPoints=https,http"
+        - "traefik.frontend.passHostHeader=true"
+        - "traefik.backend.loadbalancer.method=wrr"
+        - "traefik.backend.loadbalancer.swarm=true"
+        - "traefik.tags={{training_username}},jupyter"
+        - "traefik.backend={{training_username}}-jupyter"
+        - "traefik.frontend.rule=Host:{{training_sandbox_vm_hostname}};PathPrefix:/"
+        - "traefik.docker.network={{docker_swarm_overlay_network_name}}"
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+        reservations:
+          cpus: "0.01"
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.3
+
+  {{training_username}}-jenkins:
+    image: {{ jupyter_training_stack_jenkins_image }}
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      - AGAVE_CACHE_DIR=/var/jenkins_home/.{{training_agave_tenant_id}}
+      - AGAVE_TENANT={{training_agave_tenant_id}}
+      - AGAVE_TENANTS_API_BASEURL={{training_agave_tenants_api_baseurl}}
+      - AGAVE_USERNAME={{training_username}}
+      - AGAVE_PASSWORD={{training_password}}
+    volumes:
+      - {{jupyter_training_stack_sshkey_dir}}:/var/jenkins_home/.ssh
+    networks:
+      - swarm_overlay
+      - {{training_username}}-training
+    deploy:
+      placement:
+        constraints:
+          - "node.labels.{{training_username}} == true"
+          - "node.labels.training_node == true"
+      labels:
+        - traefik.enable=true
+        - "training.name={{training_event}}"
+        - "training.user={{training_username}}"
+        - "environment=training"
+        - "traefik.port=8080"
+        - "traefik.protocol=http"
+        - "traefik.backend.loadbalancer.method=wrr"
+        - "traefik.backend.loadbalancer.swarm=true"
+        - "traefik.tags={{training_username}},jenkins"
+        - "traefik.backend={{training_username}}-jenkins"
+        - "traefik.frontend.rule=Host:{{training_sandbox_vm_hostname}};PathPrefix:/jenkins"
+        - "traefik.docker.network={{docker_swarm_overlay_network_name}}"
+        - "traefik.frontend.passHostHeader=true"
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 4G
+        reservations:
+          cpus: "0.01"
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.3

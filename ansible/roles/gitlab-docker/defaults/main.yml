@@ -41,7 +41,7 @@ gitlab_redis_port: 6379
 # If a externally hosted postgresql server is used, set to false
 gitlab_deploy_postgres: true
 # Postgres docker image to use
-gitlab_postgres_db_image: sameersbn/postgresql:9.5-3
+gitlab_postgres_db_image: "sameersbn/postgresql:9.5-3"
 # Hostname of the database. For container deployment, this is always postgres
 gitlab_postgres_db_host: postgresql
 # Port of the database. For container deployment, this is always 5432 and will not

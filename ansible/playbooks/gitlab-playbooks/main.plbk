@@ -7,7 +7,7 @@
 # See:
 # - playbooks/host-playbooks/docker-host.plbk
 # - playbooks/host-playbooks/gitlab-server.plbk
-# - playbooks/host-playbooks/gitlab-runner.plbk
+# - playbooks/gitlab-playbooks/grant-user-admin-permissions.plbk
 #
 # Example invocation:
 # ansible-playbook -i inventory playbooks/gitlab-playbooks/main.plbk
@@ -15,5 +15,13 @@
 - name: Install gitlab server(s)
   import_playbook: gitlab-server.plbk
 
-- name: Install gitlab runner(s)
-  import_playbook: gitlab-runner.plbk
+- name: Set admin users
+  import_playbook: grant-user-admin-permissions.plbk
+  vars:
+    user_usernames: root,dooley
+
+- name: Set admin users
+  import_playbook: populate-training-accounts.plbk
+  vars:
+    user_usernames: root,dooley
+

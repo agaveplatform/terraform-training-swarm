@@ -7,8 +7,10 @@
 # ansible-playbook -i inventory playbooks/gitlab-playbooks/gitlab-server.plbk
 
 - name: Install gitlab server(s)
-  hosts: leader_node
+  hosts: gitlab
   gather_facts: no
+  become: yes
+  become_user: "{{ devops_linux_user }}"
   roles:
     - role: gitlab-docker
       tags:

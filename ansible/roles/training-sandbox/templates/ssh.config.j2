@@ -1,0 +1,11 @@
+Host: gitlab.{{ training_base_url }}
+    User                    {{ training_username }}
+    Port                    10022
+
+Host: sandbox
+    Host                    {{ training_sandbox_vm_ip_address }}
+    User                    jovyan
+
+Host: *
+    UserKnownHostsFile      /dev/null
+    StrictHostKeyChecking   false
