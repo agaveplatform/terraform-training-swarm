@@ -20,7 +20,7 @@
   vars:
     user_usernames: root,dooley
 
-- name: Set admin users
+- name: Populate the user training accounts
   import_playbook: populate-training-accounts.plbk
   vars:
     user_usernames: root,dooley

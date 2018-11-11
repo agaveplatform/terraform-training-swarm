@@ -7,7 +7,7 @@
 
 - name: Get impersonation token for each user
   uri:
-    url: "http://{{gitlab_host}}/api/v4/users/{{ item.id }}/impersonation_tokens"
+    url: "http://{{gitlab_internal_api}}/api/v4/users/{{ item.id }}/impersonation_tokens"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
@@ -37,7 +37,7 @@
   become: yes
   become_user: "{{ devops_linux_user }}"
   uri:
-    url: "http://{{gitlab_host}}/api/v4/projects"
+    url: "http://{{gitlab_internal_api}}/api/v4/projects"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ item.token }}"
@@ -62,7 +62,7 @@
   become: yes
   become_user: "{{ devops_linux_user }}"
   uri:
-    url: "http://{{gitlab_host}}/api/v4/projects/{{item.id}}/hooks"
+    url: "http://{{gitlab_internal_api}}/api/v4/projects/{{item.id}}/hooks"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_new_users_impersonation_tokens[training_user_idx].token }}"
@@ -85,7 +85,7 @@
 
 - name: Delete impersonation token for each user
   uri:
-    url: "http://{{gitlab_host}}/api/v4/users/{{ item.id }}/impersonation_tokens/{{ gitlab_new_users_impersonation_tokens[training_user_idx].id }}"
+    url: "http://{{gitlab_internal_api}}/api/v4/users/{{ item.id }}/impersonation_tokens/{{ gitlab_new_users_impersonation_tokens[training_user_idx].id }}"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"

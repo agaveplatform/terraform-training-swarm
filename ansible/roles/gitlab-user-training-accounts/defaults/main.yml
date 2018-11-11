@@ -1,6 +1,9 @@
 ---
 # defaults file for gitlab-user-training-repos
 
+# internal gitlab api host and port
+gitlab_internal_api: "{{hostvars[groups['gitlab'][0]]['ansible_ssh_host']}}:30180"
+
 # list of usernames to create
 gitlab_user_training_accounts_training_usernames: []
 

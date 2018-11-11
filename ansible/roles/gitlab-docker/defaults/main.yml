@@ -76,7 +76,7 @@ gitlab_signup_enabled: false
 # Parent directory for the gitlab installation
 gitlab_deploy_dir: "/home/{{ devops_linux_user }}/gitlab"
 # Log directory for all stack logs
-gitlab_log_dir: "/var/logs/gitlab"
+gitlab_log_dir: "/home/{{ devops_linux_user }}/logs/gitlab"
 
 
 # Gitlab ssh server port

@@ -3,7 +3,7 @@
 
 - name: Look up user to get id
   uri:
-    url: "http://{{gitlab_host}}/api/v4/users?username={{item}}"
+    url: "http://{{gitlab_internal_api}}/api/v4/users?username={{item}}"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
@@ -21,7 +21,7 @@
 
 - name: Delete users prior to init
   uri:
-    url: "http://{{gitlab_host}}/api/v4/users/{{gitlab_user_lookup_resp.results[training_user_idx].json[0].id}}?hard_delete=true"
+    url: "http://{{gitlab_internal_api}}/api/v4/users/{{gitlab_user_lookup_resp.results[training_user_idx].json[0].id}}?hard_delete=true"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
@@ -42,7 +42,7 @@
 
 - name: Create user account if missing
   uri:
-    url: "http://{{gitlab_host}}/api/v4/users"
+    url: "http://{{gitlab_internal_api}}/api/v4/users"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"
@@ -74,7 +74,7 @@
 
 - name: Add deployment keys to user accounts
   uri:
-    url: "http://{{gitlab_host}}/api/v4/users/{{ item.id }}/keys"
+    url: "http://{{gitlab_internal_api}}/api/v4/users/{{ item.id }}/keys"
     headers:
       Content-Type: application/json
       PRIVATE-TOKEN: "{{ gitlab_root_personal_token }}"

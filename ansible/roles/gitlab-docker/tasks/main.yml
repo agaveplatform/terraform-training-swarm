@@ -15,14 +15,14 @@
     - "{{ gitlab_registry_data_dir }}"
     - "{{ gitlab_registry_data_dir }}"
 
-- name: Create GitLab data, log, and cert folders on the host.
-  file:
-    path: "{{ gitlab_log_dir }}"
-    state: directory
-    owner: "{{ devops_linux_user }}"
-    group: "{{ devops_linux_user }}"
-    mode: 0770
-    recurse: yes
+#- name: Create GitLab data, log, and cert folders on the host.
+#  file:
+#    path: "{{ gitlab_log_dir }}"
+#    state: directory
+#    owner: "{{ devops_linux_user }}"
+#    group: "{{ devops_linux_user }}"
+#    mode: 0770
+#    recurse: yes
 
 - name: Create self-signed certificate for Gitlab.
   command: openssl req -new -nodes -x509 -subj "{{ gitlab_self_signed_cert_subj }}" -days 3650 -keyout {{ gitlab_cert_dir }}/{{ gitlab_ssl_certificate_key | basename }} -out {{ gitlab_cert_dir }}/{{ gitlab_ssl_certificate | basename }} -extensions v3_ca
@@ -56,12 +56,6 @@
     chdir: "{{ gitlab_deploy_dir }}"
   ignore_errors: true
 
-- name: Ensuring Swarm network is present
-  docker_network:
-    name: swarm-overlay
-    state: present
-    driver: overlay
-
 - name: Scaling down existing gitlab services
   command: docker service scale gitlab_{{ item }}=0
   args:
@@ -87,7 +81,7 @@
 
 - name: Waiting for Gitlab container to come online
   wait_for:
-    host: "{{ gitlab_host | default(hostvars[groups['worker_node'][0]]['ansible_ssh_host']) }}"
+    host: "{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
     port: 30180
     msg: Timeout waiting for gitlab server to come online
     timeout: 1000

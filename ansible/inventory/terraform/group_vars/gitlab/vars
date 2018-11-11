@@ -18,7 +18,7 @@
 ---
 # url of the gitlab instance. Uses the ssh host name if none are provided
 #gitlab_host: "gitlab.dmca.io"
-gitlab_host: "{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
+#gitlab_host: "{{ hostvars[groups['gitlab'][0]]['ansible_ssh_host'] }}"
 
 # the default gitlab admin password
 gitlab_root_password: "{{ vault_gitlab_root_password }}"

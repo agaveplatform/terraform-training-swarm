@@ -132,6 +132,22 @@ resource "openstack_compute_secgroup_v2" "swarm" {
     cidr        = "0.0.0.0/0"
   }
 
+  # Postgres traffic
+  rule {
+    ip_protocol = "tcp"
+    from_port   = 5432
+    to_port     = 5432
+    cidr        = "0.0.0.0/0"
+  }
+
+  # Jenkins HTTP traffic
+  rule {
+    ip_protocol = "tcp"
+    from_port   = 30180
+    to_port     = 30180
+    cidr        = "0.0.0.0/0"
+  }
+
   ###########################
   # Private network ports
   ###########################

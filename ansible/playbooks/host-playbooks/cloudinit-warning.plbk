@@ -1,0 +1,23 @@
+---
+# cloudinit-warning.plbk
+# Run this playbook to install and configure something. 
+#
+# Assumptions:
+# This playbook assumes the host has already been configured using the
+# `../host-playbooks/docker-host.plbk` playbook.
+#
+# Varables:
+# `clean_host`: If true, the host will be shot with a clean base configuration 
+#
+# Example invocation:
+# ansible-playbook -i inventory playbooks/host-playbooks/cloudinit-warning.plbk
+#
+
+- name: Gather facts
+  hosts: docker_swarm
+  become: yes
+
+  tasks:
+    - name: gather facts from db servers
+      shell: touch /var/lib/cloud/instance/warnings/.skip
+  

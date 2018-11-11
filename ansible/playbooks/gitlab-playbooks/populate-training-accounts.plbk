@@ -33,3 +33,7 @@
         gitlab_user_training_accounts_sshkey_base_dir: "{{ inventory_dir }}/keys/.ssh"
         gitlab_user_training_accounts_training_usernames: "{{ user_usernames.split(',') | list }}"
       delegate_to: localhost
+      tags:
+        - gitlab
+        - gitlab_users
+        - gitlab_repos

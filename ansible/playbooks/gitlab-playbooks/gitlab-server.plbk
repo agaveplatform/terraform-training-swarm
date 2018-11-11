@@ -7,15 +7,21 @@
 # ansible-playbook -i inventory playbooks/gitlab-playbooks/gitlab-server.plbk
 
 - name: Install gitlab server(s)
-  hosts: gitlab
+  hosts: docker_swarm
   gather_facts: no
   become: yes
   become_user: "{{ devops_linux_user }}"
+
   roles:
     - role: gitlab-docker
       tags:
         - gitlab
         - gitlab-server
+      delegate_to: "{{ groups['leader_node'][0] }}"
+      delegate_facts: True
+      when:
+        - groups['gitlab'] is defined
+        - inventory_hostname in groups['gitlab']
 
 - name: Set personal access token for admin user
   import_playbook: rotate-personal-access-token.plbk
